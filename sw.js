@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'tabata-fran-v15';
+const CACHE_NAME = 'tabata-fran-v16';
 const ASSETS = [
   '/',
   '/index.html',
@@ -10,7 +10,8 @@ const ASSETS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS);
+      // Usamos addAll de forma más tolerante
+      return cache.addAll(ASSETS).catch(err => console.warn('Fallo al cachear activos:', err));
     })
   );
   self.skipWaiting();
@@ -28,17 +29,28 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Estrategia: Network First, falling back to cache
+  // Solo interceptar peticiones GET
+  if (event.request.method !== 'GET') return;
+
+  const url = new URL(event.request.url);
+
+  // Manejo de navegación (HTML)
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match('/index.html'))
+      fetch(event.request).catch(() => {
+        return caches.match('/') || caches.match('/index.html');
+      })
     );
     return;
   }
 
+  // Manejo de archivos estáticos
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      return cachedResponse || fetch(event.request);
+      return cachedResponse || fetch(event.request).catch(() => {
+        // Fallback para imágenes si fuera necesario
+        return null;
+      });
     })
   );
 });

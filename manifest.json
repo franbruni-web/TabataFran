@@ -3,20 +3,20 @@
   "name": "TabataFran",
   "short_name": "TabataFran",
   "description": "Entrenador Tabata CABJ Edition",
-  "start_url": "index.html",
+  "start_url": "/",
   "display": "standalone",
   "display_override": ["standalone", "fullscreen", "minimal-ui"],
   "background_color": "#002244",
   "theme_color": "#00358E",
   "icons": [
     {
-      "src": "icon.svg",
+      "src": "/icon.svg",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "icon.svg",
+      "src": "/icon.svg",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "maskable"
