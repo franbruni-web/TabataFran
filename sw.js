@@ -1,25 +1,18 @@
 
-const CACHE_NAME = 'tabata-fran-v9';
-const ASSETS_TO_CACHE = [
-  './',
-  './index.html',
-  './manifest.json',
-  './icon.svg',
-  './index.tsx',
-  './App.tsx',
-  './types.ts',
-  './constants.tsx',
-  './services/audioService.ts',
-  './components/WorkoutEditor.tsx',
-  './components/TimerView.tsx',
-  './components/WorkoutCard.tsx',
-  './components/Icons.tsx'
+const CACHE_NAME = 'tabata-fran-v11';
+const ESSENTIAL_ASSETS = [
+  'index.html',
+  'manifest.json',
+  'icon.svg'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
+      // Intentamos añadir uno a uno para evitar que un fallo bloquee todo
+      return Promise.allSettled(
+        ESSENTIAL_ASSETS.map(asset => cache.add(asset))
+      );
     })
   );
   self.skipWaiting();
@@ -37,39 +30,27 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
-
-  // MANEJO CRÍTICO DE NAVEGACIÓN: Si es una página, siempre intentar red pero caer a CACHE si hay error o 404
+  // Manejo de navegación para evitar el 404 de Vercel/Hosting SPA
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request)
-        .then(response => {
-          // Si el servidor devuelve 404, servimos el index.html del cache
-          if (response.status === 404) {
-            return caches.match('./index.html') || caches.match('./');
-          }
-          return response;
-        })
-        .catch(() => {
-          // Si no hay red (offline), servimos el index.html
-          return caches.match('./index.html') || caches.match('./');
-        })
+        .catch(() => caches.match('index.html'))
     );
     return;
   }
 
-  // Para el resto de archivos (JS, SVG, CSS)
+  // Estrategia Cache First con actualización en segundo plano
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) return cachedResponse;
-      
-      return fetch(event.request).then((networkResponse) => {
+      const fetchPromise = fetch(event.request).then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200) {
           const cacheCopy = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, cacheCopy));
         }
         return networkResponse;
       }).catch(() => null);
+
+      return cachedResponse || fetchPromise;
     })
   );
 });

@@ -7,28 +7,37 @@
   <title>TabataFran</title>
   
   <!-- PWA & Mobile Meta -->
-  <link rel="manifest" href="./manifest.json">
+  <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#00358E">
-  <meta name="mobile-web-app-capable" content="yes">
+  
+  <!-- iOS Meta Tags -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="TabataFran">
+  <link rel="apple-touch-icon" href="icon.svg">
   
-  <!-- Iconos Apple y Android -->
-  <link rel="icon" type="image/svg+xml" href="./icon.svg">
-  <link rel="apple-touch-icon" href="./icon.svg">
+  <!-- Icono Estándar -->
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
 
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root { --safe-top: env(safe-area-inset-top); --safe-bottom: env(safe-area-inset-bottom); }
-    body { font-family: 'Inter', sans-serif; background-color: #002244; color: #ffffff; margin: 0; padding: 0; overflow: hidden; height: 100dvh; }
+    body { 
+      font-family: 'Inter', sans-serif; 
+      background-color: #002244; 
+      color: #ffffff; 
+      margin: 0; 
+      padding: 0; 
+      overflow: hidden; 
+      height: 100dvh; 
+      touch-action: manipulation;
+    }
     #root { height: 100%; width: 100%; }
     .safe-pt { padding-top: var(--safe-top); }
     .safe-pb { padding-bottom: var(--safe-bottom); }
     .scrollable-content { overflow-y: auto; -webkit-overflow-scrolling: touch; }
-    * { -webkit-tap-highlight-color: transparent; user-select: none; }
-    input, textarea { user-select: text; }
+    * { -webkit-tap-highlight-color: transparent; }
   </style>
 <script type="importmap">
 {
@@ -39,21 +48,33 @@
   }
 }
 </script>
+<link rel="stylesheet" href="/index.css">
 </head>
 <body>
   <div id="root"></div>
-  <script type="module" src="./index.tsx"></script>
+  <script type="module" src="index.tsx"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
+        // Usamos ruta relativa './sw.js' para asegurar que el origen coincida siempre
         navigator.serviceWorker.register('./sw.js', { scope: './' })
           .then(reg => {
-            console.log('SW activo');
-            reg.update();
+            console.log('SW registrado correctamente');
+            reg.onupdatefound = () => {
+              const installingWorker = reg.installing;
+              if (installingWorker) {
+                installingWorker.onstatechange = () => {
+                  if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    window.location.reload();
+                  }
+                };
+              }
+            };
           })
-          .catch(err => console.log('SW error:', err));
+          .catch(err => console.error('Error al registrar SW:', err));
       });
     }
   </script>
+<script type="module" src="/index.tsx"></script>
 </body>
 </html>
