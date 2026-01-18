@@ -5,10 +5,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>TabataFran</title>
+  
+  <!-- PWA & Mobile Meta -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#00358E">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="TabataFran">
+  
+  <!-- Iconos e Identidad -->
   <link rel="icon" type="image/svg+xml" href="icon.svg">
+  <link rel="apple-touch-icon" href="icon.svg">
+
   <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root { --safe-top: env(safe-area-inset-top); --safe-bottom: env(safe-area-inset-bottom); }
     body { font-family: 'Inter', sans-serif; background-color: #002244; color: #ffffff; margin: 0; padding: 0; overflow: hidden; height: 100dvh; }
@@ -28,18 +38,19 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
 </head>
 <body>
   <div id="root"></div>
+  <!-- Importación explícita del módulo principal -->
+  <script type="module" src="index.tsx"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-          .catch(err => console.warn('SW register fail (expected in sandbox):', err));
+        navigator.serviceWorker.register('./sw.js', { scope: './' })
+          .then(reg => console.log('PWA Service Worker registrado'))
+          .catch(err => console.log('Error de registro SW:', err));
       });
     }
   </script>
-<script type="module" src="/index.tsx"></script>
 </body>
 </html>
