@@ -12,8 +12,10 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="TabataFran">
-  <link rel="apple-touch-icon" href="icon.svg">
+  
+  <!-- Favicon e iconos -->
   <link rel="icon" type="image/svg+xml" href="icon.svg">
+  <link rel="apple-touch-icon" href="icon.svg">
 
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -42,7 +44,6 @@
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
     }
-    /* Estilo para que se vea como App nativa */
     * {
       -webkit-tap-highlight-color: transparent;
       user-select: none;
@@ -63,10 +64,22 @@
 <body>
   <div id="root"></div>
   <script>
-    // Registro básico de Service Worker para PWA
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW error:', err));
+        // Solo intentamos registrar si estamos en el mismo origen para evitar errores de sandbox
+        const isSameOrigin = window.location.origin === new URL(import.meta.url || window.location.href).origin;
+        
+        if (isSameOrigin || window.location.hostname === 'localhost' || window.location.protocol === 'https:') {
+          navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('SW registrado para:', reg.scope))
+            .catch(err => {
+              if (err.name === 'SecurityError') {
+                console.warn('Sandbox detectado: Service Worker deshabilitado para evitar error de origen.');
+              } else {
+                console.error('Error al registrar SW:', err);
+              }
+            });
+        }
       });
     }
   </script>

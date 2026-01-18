@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Workout, Period, PeriodType } from '../types';
-import { TrashIcon, PlusIcon, XIcon, ClockIcon } from './Icons';
+import { TrashIcon, PlusIcon, XIcon, ClockIcon, RotateCcwIcon } from './Icons';
 
 interface Props {
   workout: Workout;
@@ -13,6 +13,9 @@ interface Props {
 const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, onCancel }) => {
   const [edited, setEdited] = useState<Workout>({ ...workout });
   const [showPresets, setShowPresets] = useState<{ active: boolean, index: number | null }>({ active: false, index: null });
+  const [showRepeatTool, setShowRepeatTool] = useState(false);
+  const [repeatCount, setRepeatCount] = useState(2); // cuántos pasos hacia atrás
+  const [repeatTimes, setRepeatTimes] = useState(7); // cuántas veces repetir
   const [searchTerm, setSearchTerm] = useState('');
 
   const addPeriod = () => {
@@ -34,6 +37,25 @@ const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, o
       ...prev,
       periods: prev.periods.map(p => p.id === id ? { ...p, ...updates } : p)
     }));
+  };
+
+  const handleRepeatBlocks = () => {
+    if (edited.periods.length === 0) return;
+    
+    const numToCopy = Math.min(repeatCount, edited.periods.length);
+    const blocksToCopy = edited.periods.slice(-numToCopy);
+    
+    let newPeriods = [...edited.periods];
+    for (let i = 0; i < repeatTimes; i++) {
+      const cloned = blocksToCopy.map(p => ({
+        ...p,
+        id: Math.random().toString(36).substr(2, 9)
+      }));
+      newPeriods = [...newPeriods, ...cloned];
+    }
+    
+    setEdited(prev => ({ ...prev, periods: newPeriods }));
+    setShowRepeatTool(false);
   };
 
   const selectPreset = (name: string) => {
@@ -76,9 +98,19 @@ const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, o
         <div className="space-y-3">
           <div className="flex justify-between items-center px-1">
             <h3 className="text-lg font-bold text-[#FFC107]">Etapas</h3>
-            <button onClick={addPeriod} className="flex items-center gap-1 text-emerald-400 font-black text-sm active:scale-90">
-              <PlusIcon className="w-4 h-4" /> AÑADIR ETAPA
-            </button>
+            <div className="flex gap-3">
+               {edited.periods.length > 0 && (
+                 <button 
+                  onClick={() => setShowRepeatTool(true)}
+                  className="flex items-center gap-1 text-[#FFC107] font-black text-[10px] bg-[#FFC107]/10 px-2 py-1 rounded-md border border-[#FFC107]/20 active:scale-90"
+                 >
+                   <RotateCcwIcon className="w-3 h-3" /> REPETIR ÚLTIMOS
+                 </button>
+               )}
+               <button onClick={addPeriod} className="flex items-center gap-1 text-emerald-400 font-black text-[10px] bg-emerald-400/10 px-2 py-1 rounded-md border border-emerald-400/20 active:scale-90">
+                 <PlusIcon className="w-3 h-3" /> AÑADIR PASO
+               </button>
+            </div>
           </div>
 
           <div className="space-y-4">
@@ -110,7 +142,7 @@ const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, o
                   <select 
                     value={period.type}
                     onChange={e => updatePeriod(period.id, { type: e.target.value as PeriodType })}
-                    className="bg-black/20 border-none rounded-lg px-3 py-2 text-xs text-white outline-none"
+                    className="bg-black/20 border-none rounded-lg px-3 py-2 text-xs text-white outline-none appearance-none"
                   >
                     {Object.values(PeriodType).map(t => <option key={t} value={t} className="bg-[#002244] font-bold">{t}</option>)}
                   </select>
@@ -129,7 +161,7 @@ const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, o
             ))}
             {edited.periods.length === 0 && (
               <div className="text-center py-10 text-white/20 italic text-sm">
-                No hay etapas definidas. Toca "AÑADIR ETAPA".
+                No hay etapas definidas. Toca "AÑADIR PASO".
               </div>
             )}
           </div>
@@ -144,6 +176,53 @@ const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, o
           GUARDAR RUTINA
         </button>
       </footer>
+
+      {/* MODAL HERRAMIENTA REPETIR BLOQUES */}
+      {showRepeatTool && (
+        <div className="fixed inset-0 z-[150] bg-black/90 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200">
+           <div className="bg-[#002244] border-2 border-[#FFC107] p-6 rounded-3xl w-full max-w-sm shadow-2xl">
+              <div className="flex justify-between items-center mb-6">
+                <h4 className="text-[#FFC107] font-black uppercase italic tracking-tighter text-xl">Repetir Bloque</h4>
+                <button onClick={() => setShowRepeatTool(false)} className="text-white/40"><XIcon className="w-6 h-6" /></button>
+              </div>
+              
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] text-white/60 font-bold uppercase block tracking-widest">¿Cuántos pasos hacia atrás?</label>
+                  <div className="flex items-center gap-4 bg-black/40 p-1 rounded-2xl border border-white/5">
+                    <button onClick={() => setRepeatCount(Math.max(1, repeatCount - 1))} className="w-12 h-12 flex items-center justify-center bg-white/5 rounded-xl text-[#FFC107] font-black text-2xl">-</button>
+                    <span className="flex-1 text-center text-2xl font-black text-white">{repeatCount}</span>
+                    <button onClick={() => setRepeatCount(Math.min(edited.periods.length, repeatCount + 1))} className="w-12 h-12 flex items-center justify-center bg-white/5 rounded-xl text-[#FFC107] font-black text-2xl">+</button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] text-white/60 font-bold uppercase block tracking-widest">¿Cuántas veces repetir?</label>
+                  <div className="flex items-center gap-4 bg-black/40 p-1 rounded-2xl border border-white/5">
+                    <button onClick={() => setRepeatTimes(Math.max(1, repeatTimes - 1))} className="w-12 h-12 flex items-center justify-center bg-white/5 rounded-xl text-[#FFC107] font-black text-2xl">-</button>
+                    <span className="flex-1 text-center text-2xl font-black text-white">{repeatTimes}</span>
+                    <button onClick={() => setRepeatTimes(repeatTimes + 1)} className="w-12 h-12 flex items-center justify-center bg-white/5 rounded-xl text-[#FFC107] font-black text-2xl">+</button>
+                  </div>
+                </div>
+
+                <div className="pt-4 flex flex-col gap-2">
+                  <button 
+                    onClick={handleRepeatBlocks}
+                    className="w-full bg-[#FFC107] text-[#00358E] font-black py-4 rounded-xl shadow-lg active:scale-95 transition-transform"
+                  >
+                    DUPLICAR BLOQUE
+                  </button>
+                  <button 
+                    onClick={() => setShowRepeatTool(false)}
+                    className="w-full bg-white/5 text-white/40 font-bold py-2 rounded-xl text-xs uppercase"
+                  >
+                    CANCELAR
+                  </button>
+                </div>
+              </div>
+           </div>
+        </div>
+      )}
 
       {showPresets.active && (
         <div className="fixed inset-0 z-[110] bg-black/80 backdrop-blur-sm flex items-end">
