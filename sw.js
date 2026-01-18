@@ -1,17 +1,17 @@
 
-const CACHE_NAME = 'tabata-fran-v11';
-const ESSENTIAL_ASSETS = [
-  'index.html',
-  'manifest.json',
-  'icon.svg'
+const CACHE_NAME = 'tabata-fran-v12';
+const ASSETS = [
+  './',
+  './index.html',
+  './manifest.json',
+  './icon.svg'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      // Intentamos añadir uno a uno para evitar que un fallo bloquee todo
       return Promise.allSettled(
-        ESSENTIAL_ASSETS.map(asset => cache.add(asset))
+        ASSETS.map(asset => cache.add(asset))
       );
     })
   );
@@ -30,27 +30,35 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Manejo de navegación para evitar el 404 de Vercel/Hosting SPA
-  if (event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request)
-        .catch(() => caches.match('index.html'))
-    );
+  // Ignorar peticiones que no sean GET o que sean de otros dominios (ej. Google Fonts)
+  if (event.request.method !== 'GET' || !event.request.url.startsWith(self.location.origin)) {
     return;
   }
 
-  // Estrategia Cache First con actualización en segundo plano
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      const fetchPromise = fetch(event.request).then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200) {
-          const cacheCopy = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, cacheCopy));
-        }
-        return networkResponse;
-      }).catch(() => null);
+      if (cachedResponse) {
+        return cachedResponse;
+      }
 
-      return cachedResponse || fetchPromise;
+      return fetch(event.request).then((response) => {
+        // No cachear si la respuesta no es válida
+        if (!response || response.status !== 200 || response.type !== 'basic') {
+          return response;
+        }
+
+        const responseToCache = response.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, responseToCache);
+        });
+
+        return response;
+      }).catch(() => {
+        // Si falla la red y es una navegación, devolver index.html
+        if (event.request.mode === 'navigate') {
+          return caches.match('./index.html');
+        }
+      });
     })
   );
 });

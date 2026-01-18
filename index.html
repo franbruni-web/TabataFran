@@ -7,17 +7,17 @@
   <title>TabataFran</title>
   
   <!-- PWA & Mobile Meta -->
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#00358E">
   
   <!-- iOS Meta Tags -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="TabataFran">
-  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="apple-touch-icon" href="./icon.svg">
   
   <!-- Icono Estándar -->
-  <link rel="icon" type="image/svg+xml" href="icon.svg">
+  <link rel="icon" type="image/svg+xml" href="./icon.svg">
 
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -52,19 +52,14 @@
 </head>
 <body>
   <div id="root"></div>
-  <script type="module" src="index.tsx"></script>
+  <script type="module" src="./index.tsx"></script>
   <script>
-    // Registro de Service Worker simplificado para evitar errores de protocolo (blob:) 
-    // y desajustes de origen en entornos restringidos.
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-          .then(reg => console.log('Service Worker activo en:', reg.scope))
-          .catch(err => {
-            // Se muestra un aviso en consola pero no se interrumpe la ejecución, 
-            // ya que en previsualizaciones de desarrollo es común que el registro falle.
-            console.warn('El Service Worker no pudo registrarse (común en entornos de previsualización):', err.message);
-          });
+        // Registro simple y robusto con ruta relativa
+        navigator.serviceWorker.register('./sw.js', { scope: './' })
+          .then(reg => console.log('SW registrado'))
+          .catch(err => console.log('SW no crítico:', err.message));
       });
     }
   </script>
