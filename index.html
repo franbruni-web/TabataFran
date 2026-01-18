@@ -7,15 +7,15 @@
   <title>TabataFran</title>
   
   <!-- PWA & Mobile Meta -->
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#00358E">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="TabataFran">
   
   <!-- Iconos e Identidad -->
-  <link rel="icon" type="image/svg+xml" href="icon.svg">
-  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="icon" type="image/svg+xml" href="./icon.svg">
+  <link rel="apple-touch-icon" href="./icon.svg">
 
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -41,13 +41,25 @@
 </head>
 <body>
   <div id="root"></div>
-  <!-- Importación explícita del módulo principal -->
-  <script type="module" src="index.tsx"></script>
+  <!-- Importación con ruta relativa explícita -->
+  <script type="module" src="./index.tsx"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js', { scope: './' })
-          .then(reg => console.log('PWA Service Worker registrado'))
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => {
+            console.log('PWA Service Worker registrado con éxito');
+            // Forzar actualización si hay un SW nuevo esperando
+            reg.addEventListener('updatefound', () => {
+              const newWorker = reg.installing;
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // Notificar al usuario o recargar automáticamente
+                  window.location.reload();
+                }
+              });
+            });
+          })
           .catch(err => console.log('Error de registro SW:', err));
       });
     }
