@@ -9,11 +9,12 @@
   <!-- PWA & Mobile Meta -->
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#00358E">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="TabataFran">
   
-  <!-- Iconos e Identidad -->
+  <!-- Iconos Apple y Android -->
   <link rel="icon" type="image/svg+xml" href="./icon.svg">
   <link rel="apple-touch-icon" href="./icon.svg">
 
@@ -41,26 +42,16 @@
 </head>
 <body>
   <div id="root"></div>
-  <!-- Importación con ruta relativa explícita -->
   <script type="module" src="./index.tsx"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
+        navigator.serviceWorker.register('./sw.js', { scope: './' })
           .then(reg => {
-            console.log('PWA Service Worker registrado con éxito');
-            // Forzar actualización si hay un SW nuevo esperando
-            reg.addEventListener('updatefound', () => {
-              const newWorker = reg.installing;
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  // Notificar al usuario o recargar automáticamente
-                  window.location.reload();
-                }
-              });
-            });
+            console.log('SW activo');
+            reg.update();
           })
-          .catch(err => console.log('Error de registro SW:', err));
+          .catch(err => console.log('SW error:', err));
       });
     }
   </script>
