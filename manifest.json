@@ -1,0 +1,18 @@
+
+{
+  "name": "TabataFran",
+  "short_name": "TabataFran",
+  "description": "Entrenador personal de Tabata con los colores de Boca.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#002244",
+  "theme_color": "#00358E",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
