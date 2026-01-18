@@ -1,20 +1,18 @@
 
 import React, { useState, useEffect } from 'react';
-import { Workout, PeriodType } from './types';
-import { INITIAL_WORKOUTS, PRESET_EXERCISES } from './constants';
-import WorkoutEditor from './components/WorkoutEditor';
-import TimerView from './components/TimerView';
-import WorkoutCard from './components/WorkoutCard';
-import { PlusIcon } from './components/Icons';
+import { Workout } from './types.ts';
+import { INITIAL_WORKOUTS, PRESET_EXERCISES } from './constants.tsx';
+import WorkoutEditor from './components/WorkoutEditor.tsx';
+import TimerView from './components/TimerView.tsx';
+import WorkoutCard from './components/WorkoutCard.tsx';
+import { PlusIcon } from './components/Icons.tsx';
 
 const App: React.FC = () => {
   const [workouts, setWorkouts] = useState<Workout[]>(() => {
-    const saved = localStorage.getItem('tabata-fran-workouts-v3');
+    const saved = localStorage.getItem('tabata-fran-workouts-v4');
     if (saved === null) return INITIAL_WORKOUTS;
     try {
       const parsed = JSON.parse(saved);
-      // Si el array está vacío pero el usuario nunca lo borró explícitamente, devolvemos vacío
-      // Si parsed no es un array, devolvemos INITIAL_WORKOUTS
       return Array.isArray(parsed) ? parsed : INITIAL_WORKOUTS;
     } catch (e) {
       return INITIAL_WORKOUTS;
@@ -22,7 +20,7 @@ const App: React.FC = () => {
   });
 
   const [customExercises, setCustomExercises] = useState<string[]>(() => {
-    const saved = localStorage.getItem('tabata-fran-custom-ex-v3');
+    const saved = localStorage.getItem('tabata-fran-custom-ex-v4');
     return saved ? JSON.parse(saved) : [];
   });
 
@@ -30,11 +28,11 @@ const App: React.FC = () => {
   const [isEditing, setIsEditing] = useState<Workout | null>(null);
 
   useEffect(() => {
-    localStorage.setItem('tabata-fran-workouts-v3', JSON.stringify(workouts));
+    localStorage.setItem('tabata-fran-workouts-v4', JSON.stringify(workouts));
   }, [workouts]);
 
   useEffect(() => {
-    localStorage.setItem('tabata-fran-custom-ex-v3', JSON.stringify(customExercises));
+    localStorage.setItem('tabata-fran-custom-ex-v4', JSON.stringify(customExercises));
   }, [customExercises]);
 
   const handleSaveWorkout = (workout: Workout) => {

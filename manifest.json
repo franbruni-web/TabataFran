@@ -3,7 +3,7 @@
   "name": "TabataFran",
   "short_name": "TabataFran",
   "description": "Entrenador Tabata CABJ Edition",
-  "start_url": "./",
+  "start_url": "index.html",
   "display": "standalone",
   "background_color": "#002244",
   "theme_color": "#00358E",
