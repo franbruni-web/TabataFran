@@ -54,24 +54,17 @@
   <div id="root"></div>
   <script type="module" src="index.tsx"></script>
   <script>
+    // Registro de Service Worker simplificado para evitar errores de protocolo (blob:) 
+    // y desajustes de origen en entornos restringidos.
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        // Usamos ruta relativa './sw.js' para asegurar que el origen coincida siempre
-        navigator.serviceWorker.register('./sw.js', { scope: './' })
-          .then(reg => {
-            console.log('SW registrado correctamente');
-            reg.onupdatefound = () => {
-              const installingWorker = reg.installing;
-              if (installingWorker) {
-                installingWorker.onstatechange = () => {
-                  if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    window.location.reload();
-                  }
-                };
-              }
-            };
-          })
-          .catch(err => console.error('Error al registrar SW:', err));
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => console.log('Service Worker activo en:', reg.scope))
+          .catch(err => {
+            // Se muestra un aviso en consola pero no se interrumpe la ejecución, 
+            // ya que en previsualizaciones de desarrollo es común que el registro falle.
+            console.warn('El Service Worker no pudo registrarse (común en entornos de previsualización):', err.message);
+          });
       });
     }
   </script>
