@@ -7,22 +7,25 @@
   <title>TabataFran</title>
   
   <!-- PWA & Mobile Meta -->
-  <link rel="manifest" href="./manifest.json">
+  <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#00358E">
   
-  <!-- iOS Meta Tags -->
+  <!-- iOS Meta Tags - Crucial para estética de App -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="TabataFran">
-  <link rel="apple-touch-icon" href="./icon.svg">
+  <link rel="apple-touch-icon" href="/icon.svg">
   
   <!-- Icono Estándar -->
-  <link rel="icon" type="image/svg+xml" href="./icon.svg">
+  <link rel="icon" type="image/svg+xml" href="/icon.svg">
 
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
-    :root { --safe-top: env(safe-area-inset-top); --safe-bottom: env(safe-area-inset-bottom); }
+    :root { 
+      --safe-top: env(safe-area-inset-top); 
+      --safe-bottom: env(safe-area-inset-bottom); 
+    }
     body { 
       font-family: 'Inter', sans-serif; 
       background-color: #002244; 
@@ -31,12 +34,24 @@
       padding: 0; 
       overflow: hidden; 
       height: 100dvh; 
-      touch-action: manipulation;
+      /* Evita el scroll elástico que rompe la estética de app */
+      position: fixed;
+      width: 100%;
+      touch-action: none;
     }
-    #root { height: 100%; width: 100%; }
+    #root { 
+      height: 100%; 
+      width: 100%; 
+      display: flex;
+      flex-direction: column;
+    }
     .safe-pt { padding-top: var(--safe-top); }
     .safe-pb { padding-bottom: var(--safe-bottom); }
-    .scrollable-content { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .scrollable-content { 
+      overflow-y: auto; 
+      -webkit-overflow-scrolling: touch; 
+      touch-action: pan-y;
+    }
     * { -webkit-tap-highlight-color: transparent; }
   </style>
 <script type="importmap">
@@ -52,17 +67,16 @@
 </head>
 <body>
   <div id="root"></div>
-  <script type="module" src="./index.tsx"></script>
+  <script type="module" src="/index.tsx"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        // Registro simple y robusto con ruta relativa
-        navigator.serviceWorker.register('./sw.js', { scope: './' })
-          .then(reg => console.log('SW registrado'))
-          .catch(err => console.log('SW no crítico:', err.message));
+        // Usamos ruta absoluta /sw.js para evitar errores de 404 por subdirectorios
+        navigator.serviceWorker.register('/sw.js')
+          .then(reg => console.log('App lista para uso offline'))
+          .catch(err => console.warn('Modo offline no disponible:', err.message));
       });
     }
   </script>
-<script type="module" src="/index.tsx"></script>
 </body>
 </html>
