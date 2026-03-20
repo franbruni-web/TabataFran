@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { Workout } from './types.ts';
-import { INITIAL_WORKOUTS, PRESET_EXERCISES } from './constants.tsx';
-import WorkoutEditor from './components/WorkoutEditor.tsx';
-import TimerView from './components/TimerView.tsx';
-import WorkoutCard from './components/WorkoutCard.tsx';
-import { PlusIcon } from './components/Icons.tsx';
+import { Workout } from './types';
+import { INITIAL_WORKOUTS, PRESET_EXERCISES } from './constants';
+import WorkoutEditor from './components/WorkoutEditor';
+import TimerView from './components/TimerView';
+import WorkoutCard from './components/WorkoutCard';
+import { PlusIcon } from './components/Icons';
 
 const App: React.FC = () => {
   const [workouts, setWorkouts] = useState<Workout[]>(() => {
@@ -77,7 +77,7 @@ const App: React.FC = () => {
           <h1 className="text-3xl font-extrabold text-[#FFC107] tracking-tighter">
             TABATAFRAN
           </h1>
-          <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest">Gimnasio Virtual CABJ</p>
+          <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest">Entrenador Pro</p>
         </div>
         <button 
           onClick={() => setIsEditing({ id: Date.now().toString(), name: '', periods: [] })}

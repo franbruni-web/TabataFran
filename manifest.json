@@ -2,7 +2,7 @@
 {
   "name": "TabataFran",
   "short_name": "TabataFran",
-  "description": "Entrenador Tabata CABJ Edition",
+  "description": "Entrenador Tabata Pro",
   "start_url": "/",
   "display": "standalone",
   "display_override": ["standalone", "fullscreen", "minimal-ui"],

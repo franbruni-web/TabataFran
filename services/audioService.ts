@@ -6,6 +6,9 @@ class AudioService {
     if (!this.audioCtx) {
       this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
     }
+    if (this.audioCtx.state === 'suspended') {
+      this.audioCtx.resume();
+    }
   }
 
   private playBell(frequency: number, duration: number, volume: number = 0.5) {
@@ -31,25 +34,25 @@ class AudioService {
 
   playStart() {
     // Campana de inicio de round (Doble golpe fuerte)
-    this.playBell(1200, 1.5, 0.6);
-    setTimeout(() => this.playBell(1200, 1.5, 0.6), 250);
+    this.playBell(1200, 1.5, 1.5);
+    setTimeout(() => this.playBell(1200, 1.5, 1.5), 250);
   }
 
   playRest() {
     // Campana de fin de round (Un golpe más grave)
-    this.playBell(800, 2.0, 0.5);
+    this.playBell(800, 2.0, 1.5);
   }
 
   playComplete() {
     // Triple campana de final de pelea
-    this.playBell(1000, 1.5, 0.5);
-    setTimeout(() => this.playBell(1000, 1.5, 0.5), 300);
-    setTimeout(() => this.playBell(1000, 2.0, 0.5), 600);
+    this.playBell(1000, 1.5, 1.5);
+    setTimeout(() => this.playBell(1000, 1.5, 1.5), 300);
+    setTimeout(() => this.playBell(1000, 2.0, 1.5), 600);
   }
   
   playTick() {
     // Tic tac sutil
-    this.playBell(1500, 0.05, 0.1);
+    this.playBell(1500, 0.05, 0.2);
   }
 }
 

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Workout, PeriodType } from '../types';
 import { audioService } from '../services/audioService';
 import { PERIOD_CONFIG, getEmojiForExercise } from '../constants';
-import { ArrowLeftIcon, PlayIcon, PauseIcon, SkipForwardIcon, RotateCcwIcon, XIcon } from './Icons';
+import { ArrowLeftIcon, PlayIcon, PauseIcon, SkipForwardIcon, SkipBackIcon, RotateCcwIcon, XIcon } from './Icons';
 
 interface Props {
   workout: Workout;
@@ -43,6 +43,23 @@ const TimerView: React.FC<Props> = ({ workout, onBack }) => {
       completeWorkout();
     }
   }, [index, workout.periods, completeWorkout]);
+
+  const prevStep = useCallback(() => {
+    if (index > 0) {
+      const prevIdx = index - 1;
+      const prevP = workout.periods[prevIdx];
+      setIndex(prevIdx);
+      setTimeLeft(prevP.duration);
+      
+      if (prevP.type === PeriodType.REST || prevP.type === PeriodType.COOLDOWN) {
+        audioService.playRest();
+      } else {
+        audioService.playStart();
+      }
+    } else {
+      setTimeLeft(workout.periods[0].duration);
+    }
+  }, [index, workout.periods]);
 
   useEffect(() => {
     if (isActive && timeLeft > 0) {
@@ -138,11 +155,15 @@ const TimerView: React.FC<Props> = ({ workout, onBack }) => {
         </div>
       </main>
 
-      <footer className="p-8 pb-12 safe-pb flex items-center justify-center gap-6 bg-[#001b36] shadow-[0_-10px_30px_rgba(0,0,0,0.5)] z-20">
-        <button onClick={resetTimer} className="p-4 bg-white/5 rounded-full text-white active:bg-white/20" title="Reiniciar">
-          <RotateCcwIcon className="w-8 h-8" />
+      <footer className="p-8 pb-12 safe-pb flex items-center justify-center gap-4 bg-[#001b36] shadow-[0_-10px_30px_rgba(0,0,0,0.5)] z-20">
+        <button onClick={resetTimer} className="p-3 bg-white/5 rounded-full text-white active:bg-white/20" title="Reiniciar">
+          <RotateCcwIcon className="w-6 h-6" />
         </button>
         
+        <button onClick={() => { audioService.playTick(); prevStep(); }} className="p-4 bg-white/5 rounded-full text-white active:bg-white/20" title="Anterior">
+          <SkipBackIcon className="w-8 h-8" />
+        </button>
+
         <button 
           onClick={toggleTimer}
           className={`p-10 rounded-full transition-all transform active:scale-90 shadow-2xl ${isActive ? 'bg-white text-[#00358E]' : 'bg-[#FFC107] text-[#00358E] scale-110 shadow-[#FFC107]/40 ring-4 ring-[#FFC107]/20'}`}

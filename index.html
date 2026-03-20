@@ -54,15 +54,6 @@
     }
     * { -webkit-tap-highlight-color: transparent; }
   </style>
-<script type="importmap">
-{
-  "imports": {
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
-  }
-}
-</script>
 <link rel="stylesheet" href="/index.css">
 </head>
 <body>
@@ -71,10 +62,12 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        // Usamos ruta absoluta /sw.js para evitar errores de 404 por subdirectorios
-        navigator.serviceWorker.register('/sw.js')
-          .then(reg => console.log('App lista para uso offline'))
-          .catch(err => console.warn('Modo offline no disponible:', err.message));
+        // No registrar el Service Worker en entorno local (Vite) para evitar pantallazos azules/caché rota
+        if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+          navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('App lista para uso offline'))
+            .catch(err => console.warn('Modo offline no disponible:', err.message));
+        }
       });
     }
   </script>

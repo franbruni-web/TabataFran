@@ -1,5 +1,5 @@
 
-import { PeriodType } from './types';
+import { PeriodType, Workout } from './types';
 
 export const PERIOD_CONFIG: Record<PeriodType, { color: string; bg: string; icon: string }> = {
   [PeriodType.WARMUP]: {
@@ -68,10 +68,10 @@ export const getEmojiForExercise = (name: string, type: PeriodType): string => {
   return '💪';
 };
 
-export const INITIAL_WORKOUTS: any[] = [
+export const INITIAL_WORKOUTS: Workout[] = [
   {
     id: '1',
-    name: 'Tabata Boca 12',
+    name: 'Tabata Clásico 12',
     description: 'Rutina clásica de 4 minutos intensa.',
     periods: [
       { id: 'p0', name: 'Prepararse', type: PeriodType.PREPARE, duration: 10 },

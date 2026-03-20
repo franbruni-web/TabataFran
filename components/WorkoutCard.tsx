@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Workout } from '../types';
-import { PlayIcon, EditIcon, TrashIcon, ClockIcon, XIcon } from './Icons';
+import { PlayIcon, EditIcon, TrashIcon, ClockIcon, XIcon, DownloadIcon } from './Icons';
 
 interface Props {
   workout: Workout;
@@ -61,6 +61,73 @@ const WorkoutCard: React.FC<Props> = ({ workout, onStart, onEdit, onDelete }) =>
     onStart();
   };
 
+  const handleExportPDF = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const html = `
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="UTF-8">
+        <title>${workout.name} - TabataFran</title>
+        <style>
+          body { font-family: system-ui, -apple-system, sans-serif; background-color: #ffffff; color: #002244; padding: 40px; margin: 0; }
+          .header { text-align: center; border-bottom: 3px solid #00358E; padding-bottom: 20px; margin-bottom: 30px; }
+          .header h1 { color: #00358E; font-size: 36px; margin: 0; text-transform: uppercase; font-style: italic; font-weight: 900; }
+          .header p { color: #666; font-size: 16px; margin-top: 10px; }
+          .badge { display: inline-block; background-color: #FFC107; color: #00358E; padding: 8px 20px; border-radius: 20px; font-weight: bold; font-size: 14px; margin-top: 10px; text-transform: uppercase; }
+          table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 20px; border-radius: 10px; overflow: hidden; border: 1px solid #00358E; }
+          th { background-color: #00358E; color: #FFC107; padding: 15px; text-align: left; font-size: 14px; text-transform: uppercase; border-bottom: 2px solid #FFC107; }
+          td { padding: 15px; border-bottom: 1px solid #e2e8f0; }
+          tr:last-child td { border-bottom: none; }
+          .row-EJERCICIO { font-weight: bold; color: #002244; }
+          .row-DESCANSO { color: #64748b; background-color: #f8fafc; font-style: italic; }
+          .footer { margin-top: 40px; text-align: center; color: #94a3b8; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+          @media print { body { padding: 0; } .badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; } th { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>${workout.name || 'Rutina de Entrenamiento'}</h1>
+          ${workout.description ? `<p>${workout.description}</p>` : ''}
+          <div class="badge">Duración Total: ${minutes} min ${seconds} seg</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th width="10%">#</th>
+              <th width="25%">Tipo</th>
+              <th width="45%">Ejercicio</th>
+              <th width="20%">Tiempo</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${workout.periods.map((p, i) => `
+              <tr class="row-${p.type}">
+                <td>${i + 1}</td>
+                <td>${p.type}</td>
+                <td>${p.name || p.type}</td>
+                <td>${p.duration}s</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        <div class="footer">Generado con TabataFran Pro</div>
+        <script>
+          window.onload = () => { window.print(); window.setTimeout(() => window.close(), 500); }
+        </script>
+      </body>
+      </html>
+    `;
+    
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(html);
+      printWindow.document.close();
+    }
+  };
+
   return (
     <div 
       className={`bg-[#002244] border ${isConfirmingDelete ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]' : 'border-[#FFC107]/30'} p-5 rounded-2xl shadow-lg active:bg-[#00358E] transition-all relative overflow-hidden flex flex-col`}
@@ -89,6 +156,14 @@ const WorkoutCard: React.FC<Props> = ({ workout, onStart, onEdit, onDelete }) =>
             >
               <PlayIcon className="w-5 h-5" />
               ENTRENAR
+            </button>
+            <button 
+              onClick={handleExportPDF}
+              className="p-4 rounded-xl bg-blue-800 text-white border border-blue-600 active:scale-90 transition-transform shadow-md"
+              aria-label="Exportar PDF"
+              title="Exportar a PDF"
+            >
+              <DownloadIcon className="w-5 h-5" />
             </button>
             <button 
               onClick={handleEdit}
