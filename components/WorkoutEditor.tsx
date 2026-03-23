@@ -111,7 +111,8 @@ const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, o
     const SWAP_THRESHOLD = 55; // Sensibilidad reducida para reordenar más fácil
     
     if (Math.abs(diff) > SWAP_THRESHOLD) {
-      const newIndex = touchCurrentIndex.current + (diff > 0 ? 1 : -1);
+      const direction = diff > 0 ? 1 : -1;
+      const newIndex = touchCurrentIndex.current + direction;
       if (newIndex >= 0 && newIndex < edited.periods.length) {
         setEdited(prev => {
           const newPeriods = [...prev.periods];
@@ -120,8 +121,11 @@ const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, o
           return { ...prev, periods: newPeriods };
         });
         touchCurrentIndex.current = newIndex;
-        touchStartY.current = currentY;
-        setDragOffset(0); // Reseteamos el salto visual tras intercambiar
+        
+        // Compensamos el salto físico de la tarjeta en el DOM (aprox 140px de altura total)
+        // Esto evita que la tarjeta "salte" y se escape del dedo, lo cual causaba la selección del otro ejercicio
+        touchStartY.current += direction * 140;
+        setDragOffset(currentY - touchStartY.current);
         setDraggedIndex(newIndex);
       }
     }
@@ -200,7 +204,7 @@ const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, o
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className={`space-y-4 ${draggedIndex !== null ? 'select-none' : ''}`}>
             {edited.periods.map((period, index) => (
               <div 
                 key={period.id} 
