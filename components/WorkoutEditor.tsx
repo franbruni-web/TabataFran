@@ -19,9 +19,9 @@ const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, o
   const [repeatTimes, setRepeatTimes] = useState(7);
   const [searchTerm, setSearchTerm] = useState('');
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [dragOffset, setDragOffset] = useState<number>(0);
   const touchStartY = useRef<number>(0);
-  const touchCurrentIndex = useRef<number | null>(null);
 
   const [isTouchDevice, setIsTouchDevice] = useState(false);
   useEffect(() => {
@@ -91,49 +91,43 @@ const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, o
       return { ...prev, periods: newPeriods };
     });
     setDraggedIndex(null);
+    setHoverIndex(null);
   };
 
   const handleTouchStart = (e: React.TouchEvent, index: number) => {
     touchStartY.current = e.touches[0].clientY;
-    touchCurrentIndex.current = index;
     setDraggedIndex(index);
+    setHoverIndex(index);
     setDragOffset(0);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (touchCurrentIndex.current === null) return;
+    if (draggedIndex === null) return;
     const currentY = e.touches[0].clientY;
     const diff = currentY - touchStartY.current;
     
-    // 1. Hacemos que la tarjeta siga visualmente el dedo
     setDragOffset(diff);
 
-    const SWAP_THRESHOLD = 55; // Sensibilidad reducida para reordenar más fácil
+    const CARD_HEIGHT = 124; // Altura aproximada de la tarjeta + margen
+    const itemsShifted = Math.round(diff / CARD_HEIGHT);
+    const newHoverIndex = Math.max(0, Math.min(draggedIndex + itemsShifted, edited.periods.length - 1));
     
-    if (Math.abs(diff) > SWAP_THRESHOLD) {
-      const direction = diff > 0 ? 1 : -1;
-      const newIndex = touchCurrentIndex.current + direction;
-      if (newIndex >= 0 && newIndex < edited.periods.length) {
-        setEdited(prev => {
-          const newPeriods = [...prev.periods];
-          const [item] = newPeriods.splice(touchCurrentIndex.current!, 1);
-          newPeriods.splice(newIndex, 0, item);
-          return { ...prev, periods: newPeriods };
-        });
-        touchCurrentIndex.current = newIndex;
-        
-        // Compensamos el salto físico de la tarjeta en el DOM (aprox 140px de altura total)
-        // Esto evita que la tarjeta "salte" y se escape del dedo, lo cual causaba la selección del otro ejercicio
-        touchStartY.current += direction * 140;
-        setDragOffset(currentY - touchStartY.current);
-        setDraggedIndex(newIndex);
-      }
+    if (newHoverIndex !== hoverIndex) {
+      setHoverIndex(newHoverIndex);
     }
   };
 
   const handleTouchEnd = () => {
-    touchCurrentIndex.current = null;
+    if (draggedIndex !== null && hoverIndex !== null && draggedIndex !== hoverIndex) {
+      setEdited(prev => {
+        const newPeriods = [...prev.periods];
+        const [item] = newPeriods.splice(draggedIndex, 1);
+        newPeriods.splice(hoverIndex, 0, item);
+        return { ...prev, periods: newPeriods };
+      });
+    }
     setDraggedIndex(null);
+    setHoverIndex(null);
     setDragOffset(0);
   };
 
@@ -205,22 +199,34 @@ const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, o
           </div>
 
           <div className={`space-y-4 ${draggedIndex !== null ? 'select-none' : ''}`}>
-            {edited.periods.map((period, index) => (
-              <div 
-                key={period.id} 
-                draggable={!isTouchDevice}
-                onDragStart={() => setDraggedIndex(index)}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={() => handleDrop(index)}
-                onDragEnd={() => setDraggedIndex(null)}
-                className={`bg-blue-900/30 border p-4 rounded-xl space-y-3 shadow-inner ${!isTouchDevice ? 'cursor-grab active:cursor-grabbing' : ''} ${draggedIndex === index ? 'opacity-95 scale-[1.02] border-[#FFC107] shadow-2xl ring-2 ring-[#FFC107]/50' : 'border-[#FFC107]/10 transition-all duration-300'}`}
-                style={{
-                  transform: draggedIndex === index ? `translateY(${dragOffset}px)` : 'translateY(0)',
-                  zIndex: draggedIndex === index ? 50 : 1,
-                  position: 'relative'
-                }}
-              >
-                <div className="flex justify-between items-center">
+            {edited.periods.map((period, index) => {
+              let translateY = 0;
+              if (isTouchDevice && draggedIndex !== null && hoverIndex !== null) {
+                if (index === draggedIndex) {
+                  translateY = dragOffset;
+                } else if (draggedIndex < hoverIndex && index > draggedIndex && index <= hoverIndex) {
+                  translateY = -124; // Mover hacia arriba para hacer espacio
+                } else if (draggedIndex > hoverIndex && index < draggedIndex && index >= hoverIndex) {
+                  translateY = 124; // Mover hacia abajo para hacer espacio
+                }
+              }
+
+              return (
+                <div 
+                  key={period.id} 
+                  draggable={!isTouchDevice}
+                  onDragStart={() => setDraggedIndex(index)}
+                  onDragOver={(e) => { e.preventDefault(); setHoverIndex(index); }}
+                  onDrop={() => handleDrop(index)}
+                  onDragEnd={() => { setDraggedIndex(null); setHoverIndex(null); }}
+                  className={`bg-blue-900/30 border p-4 rounded-xl space-y-3 shadow-inner ${!isTouchDevice ? 'cursor-grab active:cursor-grabbing' : ''} ${draggedIndex === index ? 'opacity-95 scale-[1.02] border-[#FFC107] shadow-2xl ring-2 ring-[#FFC107]/50' : 'border-[#FFC107]/10 transition-transform duration-300'}`}
+                  style={{
+                    transform: `translateY(${translateY}px)`,
+                    zIndex: draggedIndex === index ? 50 : 1,
+                    position: 'relative'
+                  }}
+                >
+                  <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
                     <span 
                     className="text-white/50 text-xl cursor-grab active:cursor-grabbing px-4 py-2 -ml-2 select-none" 
@@ -255,8 +261,9 @@ const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, o
                     <span className="text-[#FFC107] font-mono font-bold text-sm">{period.duration}s</span>
                   </div>
                 </div>
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
