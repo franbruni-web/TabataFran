@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Workout, Period, PeriodType } from '../types';
 import { TrashIcon, PlusIcon, XIcon, ClockIcon, RotateCcwIcon, EditIcon } from './Icons';
 
@@ -21,6 +21,11 @@ const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, o
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const touchStartY = useRef<number>(0);
   const touchCurrentIndex = useRef<number | null>(null);
+
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+  useEffect(() => {
+    setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0);
+  }, []);
 
   const handleOpenAddPeriod = () => {
     setEditingPeriod({
@@ -97,7 +102,7 @@ const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, o
     if (touchCurrentIndex.current === null) return;
     const currentY = e.touches[0].clientY;
     const diff = currentY - touchStartY.current;
-    const ITEM_HEIGHT = 65; // Sensibilidad de arrastre (mitad de una tarjeta)
+    const ITEM_HEIGHT = 80; // Sensibilidad de arrastre mejorada para mobile
     
     if (Math.abs(diff) > ITEM_HEIGHT) {
       const newIndex = touchCurrentIndex.current + (diff > 0 ? 1 : -1);
@@ -191,17 +196,17 @@ const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, o
             {edited.periods.map((period, index) => (
               <div 
                 key={period.id} 
-                draggable
+                draggable={!isTouchDevice}
                 onDragStart={() => setDraggedIndex(index)}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={() => handleDrop(index)}
                 onDragEnd={() => setDraggedIndex(null)}
-                className={`bg-blue-900/30 border border-[#FFC107]/10 p-4 rounded-xl space-y-3 shadow-inner cursor-grab active:cursor-grabbing transition-all ${draggedIndex === index ? 'opacity-40 scale-95 border-dashed border-[#FFC107]' : ''}`}
+                className={`bg-blue-900/30 border border-[#FFC107]/10 p-4 rounded-xl space-y-3 shadow-inner transition-all ${!isTouchDevice ? 'cursor-grab active:cursor-grabbing' : ''} ${draggedIndex === index ? 'opacity-40 scale-95 border-dashed border-[#FFC107]' : ''}`}
               >
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
                     <span 
-                      className="text-white/30 text-lg cursor-grab active:cursor-grabbing px-2 py-1" 
+                      className="text-white/50 text-xl cursor-grab active:cursor-grabbing px-2 py-1" 
                       style={{ touchAction: 'none' }}
                       title="Arrastrar para reordenar"
                       onTouchStart={(e) => handleTouchStart(e, index)}
