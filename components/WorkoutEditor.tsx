@@ -206,8 +206,8 @@ const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, o
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
                     <span 
-                      className="text-white/50 text-xl cursor-grab active:cursor-grabbing px-2 py-1" 
-                      style={{ touchAction: 'none' }}
+                    className="text-white/50 text-xl cursor-grab active:cursor-grabbing px-4 py-2 -ml-2 select-none" 
+                    style={{ touchAction: 'none', WebkitTouchCallout: 'none' }}
                       title="Arrastrar para reordenar"
                       onTouchStart={(e) => handleTouchStart(e, index)}
                       onTouchMove={handleTouchMove}
