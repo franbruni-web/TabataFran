@@ -19,6 +19,7 @@ const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, o
   const [repeatTimes, setRepeatTimes] = useState(7);
   const [searchTerm, setSearchTerm] = useState('');
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOffset, setDragOffset] = useState<number>(0);
   const touchStartY = useRef<number>(0);
   const touchCurrentIndex = useRef<number | null>(null);
 
@@ -96,15 +97,20 @@ const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, o
     touchStartY.current = e.touches[0].clientY;
     touchCurrentIndex.current = index;
     setDraggedIndex(index);
+    setDragOffset(0);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (touchCurrentIndex.current === null) return;
     const currentY = e.touches[0].clientY;
     const diff = currentY - touchStartY.current;
-    const ITEM_HEIGHT = 80; // Sensibilidad de arrastre mejorada para mobile
     
-    if (Math.abs(diff) > ITEM_HEIGHT) {
+    // 1. Hacemos que la tarjeta siga visualmente el dedo
+    setDragOffset(diff);
+
+    const SWAP_THRESHOLD = 55; // Sensibilidad reducida para reordenar más fácil
+    
+    if (Math.abs(diff) > SWAP_THRESHOLD) {
       const newIndex = touchCurrentIndex.current + (diff > 0 ? 1 : -1);
       if (newIndex >= 0 && newIndex < edited.periods.length) {
         setEdited(prev => {
@@ -115,6 +121,7 @@ const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, o
         });
         touchCurrentIndex.current = newIndex;
         touchStartY.current = currentY;
+        setDragOffset(0); // Reseteamos el salto visual tras intercambiar
         setDraggedIndex(newIndex);
       }
     }
@@ -123,6 +130,7 @@ const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, o
   const handleTouchEnd = () => {
     touchCurrentIndex.current = null;
     setDraggedIndex(null);
+    setDragOffset(0);
   };
 
   const handleTypeChangeInForm = (type: PeriodType) => {
@@ -201,7 +209,12 @@ const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, o
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={() => handleDrop(index)}
                 onDragEnd={() => setDraggedIndex(null)}
-                className={`bg-blue-900/30 border border-[#FFC107]/10 p-4 rounded-xl space-y-3 shadow-inner transition-all ${!isTouchDevice ? 'cursor-grab active:cursor-grabbing' : ''} ${draggedIndex === index ? 'opacity-40 scale-95 border-dashed border-[#FFC107]' : ''}`}
+                className={`bg-blue-900/30 border p-4 rounded-xl space-y-3 shadow-inner ${!isTouchDevice ? 'cursor-grab active:cursor-grabbing' : ''} ${draggedIndex === index ? 'opacity-95 scale-[1.02] border-[#FFC107] shadow-2xl ring-2 ring-[#FFC107]/50' : 'border-[#FFC107]/10 transition-all duration-300'}`}
+                style={{
+                  transform: draggedIndex === index ? `translateY(${dragOffset}px)` : 'translateY(0)',
+                  zIndex: draggedIndex === index ? 50 : 1,
+                  position: 'relative'
+                }}
               >
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
