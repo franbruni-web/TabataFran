@@ -100,7 +100,7 @@ const WorkoutCard: React.FC<Props> = ({ workout, onStart, onEdit, onDelete }) =>
       </div>
     `;
 
-    const opt = {
+    const opt: any = {
       margin:       0,
       filename:     `Rutina_${(workout.name || 'Tabata').replace(/\s+/g, '_')}.pdf`,
       image:        { type: 'jpeg', quality: 0.98 },
