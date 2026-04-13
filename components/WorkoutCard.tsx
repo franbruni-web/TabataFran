@@ -1,6 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import html2pdf from 'html2pdf.js';
 import { Workout } from '../types';
+import { audioService } from '../services/audioService';
 import { PlayIcon, EditIcon, TrashIcon, ClockIcon, XIcon, DownloadIcon } from './Icons';
 
 interface Props {
@@ -58,73 +60,70 @@ const WorkoutCard: React.FC<Props> = ({ workout, onStart, onEdit, onDelete }) =>
   const handleStart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    audioService.unlock();
     onStart();
   };
 
-  const handleExportPDF = (e: React.MouseEvent) => {
+  const handleExportPDF = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
-    const html = `
-      <!DOCTYPE html>
-      <html lang="es">
-      <head>
-        <meta charset="UTF-8">
-        <title>${workout.name} - TabataFran</title>
-        <style>
-          body { font-family: system-ui, -apple-system, sans-serif; background-color: #ffffff; color: #002244; padding: 40px; margin: 0; }
-          .header { text-align: center; border-bottom: 3px solid #00358E; padding-bottom: 20px; margin-bottom: 30px; }
-          .header h1 { color: #00358E; font-size: 36px; margin: 0; text-transform: uppercase; font-style: italic; font-weight: 900; }
-          .header p { color: #666; font-size: 16px; margin-top: 10px; }
-          .badge { display: inline-block; background-color: #FFC107; color: #00358E; padding: 8px 20px; border-radius: 20px; font-weight: bold; font-size: 14px; margin-top: 10px; text-transform: uppercase; }
-          table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 20px; border-radius: 10px; overflow: hidden; border: 1px solid #00358E; }
-          th { background-color: #00358E; color: #FFC107; padding: 15px; text-align: left; font-size: 14px; text-transform: uppercase; border-bottom: 2px solid #FFC107; }
-          td { padding: 15px; border-bottom: 1px solid #e2e8f0; }
-          tr:last-child td { border-bottom: none; }
-          .row-EJERCICIO { font-weight: bold; color: #002244; }
-          .row-DESCANSO { color: #64748b; background-color: #f8fafc; font-style: italic; }
-          .footer { margin-top: 40px; text-align: center; color: #94a3b8; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
-          @media print { body { padding: 0; } .badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; } th { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <h1>${workout.name || 'Rutina de Entrenamiento'}</h1>
-          ${workout.description ? `<p>${workout.description}</p>` : ''}
-          <div class="badge">Duración Total: ${minutes} min ${seconds} seg</div>
+    const container = document.createElement('div');
+    container.innerHTML = `
+      <div style="font-family: system-ui, -apple-system, sans-serif; background-color: #ffffff; color: #002244; padding: 40px; width: 100%; box-sizing: border-box;">
+        <div style="text-align: center; border-bottom: 3px solid #00358E; padding-bottom: 20px; margin-bottom: 30px;">
+          <h1 style="color: #00358E; font-size: 36px; margin: 0; text-transform: uppercase; font-style: italic; font-weight: 900;">${workout.name || 'Rutina de Entrenamiento'}</h1>
+          ${workout.description ? `<p style="color: #666; font-size: 16px; margin-top: 10px;">${workout.description}</p>` : ''}
+          <div style="display: inline-block; background-color: #FFC107; color: #00358E; padding: 8px 20px; border-radius: 20px; font-weight: bold; font-size: 14px; margin-top: 10px; text-transform: uppercase;">Duración Total: ${minutes} min ${seconds} seg</div>
         </div>
-        <table>
+        <table style="width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 20px; border-radius: 10px; overflow: hidden; border: 1px solid #00358E;">
           <thead>
             <tr>
-              <th width="10%">#</th>
-              <th width="25%">Tipo</th>
-              <th width="45%">Ejercicio</th>
-              <th width="20%">Tiempo</th>
+              <th style="width: 10%; background-color: #00358E; color: #FFC107; padding: 15px; text-align: left; font-size: 14px; text-transform: uppercase; border-bottom: 2px solid #FFC107;">#</th>
+              <th style="width: 25%; background-color: #00358E; color: #FFC107; padding: 15px; text-align: left; font-size: 14px; text-transform: uppercase; border-bottom: 2px solid #FFC107;">Tipo</th>
+              <th style="width: 45%; background-color: #00358E; color: #FFC107; padding: 15px; text-align: left; font-size: 14px; text-transform: uppercase; border-bottom: 2px solid #FFC107;">Ejercicio</th>
+              <th style="width: 20%; background-color: #00358E; color: #FFC107; padding: 15px; text-align: left; font-size: 14px; text-transform: uppercase; border-bottom: 2px solid #FFC107;">Tiempo</th>
             </tr>
           </thead>
           <tbody>
             ${workout.periods.map((p, i) => `
-              <tr class="row-${p.type}">
-                <td>${i + 1}</td>
-                <td>${p.type}</td>
-                <td>${p.name || p.type}</td>
-                <td>${p.duration}s</td>
+              <tr style="${p.type === 'Descanso' || p.type.toString().toUpperCase() === 'DESCANSO' ? 'color: #64748b; background-color: #f8fafc; font-style: italic;' : 'font-weight: bold; color: #002244;'}">
+                <td style="padding: 15px; border-bottom: 1px solid #e2e8f0;">${i + 1}</td>
+                <td style="padding: 15px; border-bottom: 1px solid #e2e8f0;">${p.type}</td>
+                <td style="padding: 15px; border-bottom: 1px solid #e2e8f0;">${p.name || p.type}</td>
+                <td style="padding: 15px; border-bottom: 1px solid #e2e8f0;">${p.duration}s</td>
               </tr>
             `).join('')}
           </tbody>
         </table>
-        <div class="footer">Generado con TabataFran Pro</div>
-        <script>
-          window.onload = () => { window.print(); window.setTimeout(() => window.close(), 500); }
-        </script>
-      </body>
-      </html>
+        <div style="margin-top: 40px; text-align: center; color: #94a3b8; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Generado con TabataFran Pro</div>
+      </div>
     `;
-    
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(html);
-      printWindow.document.close();
+
+    const opt = {
+      margin:       0,
+      filename:     `Rutina_${(workout.name || 'Tabata').replace(/\s+/g, '_')}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true },
+      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+
+    try {
+      const pdfBlob = await html2pdf().set(opt).from(container).output('blob');
+      const file = new File([pdfBlob], opt.filename, { type: 'application/pdf' });
+      
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: workout.name || 'Rutina de Entrenamiento',
+          text: 'Te comparto mi rutina desde TabataFran Pro'
+        });
+      } else {
+        html2pdf().set(opt).from(container).save();
+      }
+    } catch (e) {
+      console.warn('Share API failed or not supported, saving directly.', e);
+      html2pdf().set(opt).from(container).save();
     }
   };
 

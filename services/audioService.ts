@@ -11,6 +11,20 @@ class AudioService {
     }
   }
 
+  unlock() {
+    this.initContext();
+    if (!this.audioCtx) return;
+    
+    // Play a silent oscillator for 10ms to unlock audio
+    const oscillator = this.audioCtx.createOscillator();
+    const gainNode = this.audioCtx.createGain();
+    gainNode.gain.value = 0;
+    oscillator.connect(gainNode);
+    gainNode.connect(this.audioCtx.destination);
+    oscillator.start(0);
+    oscillator.stop(this.audioCtx.currentTime + 0.01);
+  }
+
   private playBell(frequency: number, duration: number, volume: number = 0.5) {
     this.initContext();
     if (!this.audioCtx) return;

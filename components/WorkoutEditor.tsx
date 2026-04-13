@@ -1,7 +1,9 @@
-
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Workout, Period, PeriodType } from '../types';
 import { TrashIcon, PlusIcon, XIcon, ClockIcon, RotateCcwIcon, EditIcon } from './Icons';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface Props {
   workout: Workout;
@@ -9,6 +11,59 @@ interface Props {
   onSave: (workout: Workout) => void;
   onCancel: () => void;
 }
+
+const SortablePeriod = ({ period, index, handleOpenEditPeriod, removePeriod }: any) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: period.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : 1,
+    position: 'relative' as any,
+  };
+
+  return (
+    <div 
+      ref={setNodeRef}
+      style={style}
+      className={`bg-blue-900/30 border p-4 rounded-xl space-y-3 shadow-inner ${isDragging ? 'opacity-95 scale-[1.02] border-[#FFC107] shadow-2xl ring-2 ring-[#FFC107]/50' : 'border-[#FFC107]/10 transition-transform duration-300'}`}
+    >
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <span 
+            {...attributes} 
+            {...listeners} 
+            className="text-white/50 text-xl cursor-grab active:cursor-grabbing px-4 py-2 -ml-2 select-none outline-none" 
+            style={{ touchAction: 'none', WebkitTouchCallout: 'none' }}
+            title="Arrastrar para reordenar"
+          >
+            ☰
+          </span>
+          <span className="text-[10px] font-black text-white/30 tracking-widest">ROUND #{index + 1}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <button onClick={() => handleOpenEditPeriod(period)} className="text-blue-400 p-2 active:scale-75">
+            <EditIcon className="w-5 h-5" />
+          </button>
+          <button onClick={() => removePeriod(period.id)} className="text-red-400 p-2 active:scale-75">
+            <TrashIcon className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+      
+      <div className="flex justify-between items-center bg-black/20 p-3 rounded-xl border border-white/5 cursor-default">
+        <div>
+          <span className="text-[10px] font-bold text-white/50 uppercase block mb-0.5">{period.type}</span>
+          <span className="text-sm font-black text-white">{period.name || 'Sin nombre'}</span>
+        </div>
+        <div className="flex items-center gap-1.5 bg-[#002244] px-3 py-1.5 rounded-lg border border-[#FFC107]/20">
+          <ClockIcon className="w-4 h-4 text-[#FFC107]" />
+          <span className="text-[#FFC107] font-mono font-bold text-sm">{period.duration}s</span>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, onCancel }) => {
   const [edited, setEdited] = useState<Workout>({ ...workout });
@@ -18,15 +73,22 @@ const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, o
   const [repeatCount, setRepeatCount] = useState(2);
   const [repeatTimes, setRepeatTimes] = useState(7);
   const [searchTerm, setSearchTerm] = useState('');
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
-  const [dragOffset, setDragOffset] = useState<number>(0);
-  const touchStartY = useRef<number>(0);
 
-  const [isTouchDevice, setIsTouchDevice] = useState(false);
-  useEffect(() => {
-    setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0);
-  }, []);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setEdited((prev) => {
+        const oldIndex = prev.periods.findIndex((p) => p.id === active.id);
+        const newIndex = prev.periods.findIndex((p) => p.id === over.id);
+        return { ...prev, periods: arrayMove(prev.periods, oldIndex, newIndex) };
+      });
+    }
+  };
 
   const handleOpenAddPeriod = () => {
     setEditingPeriod({
@@ -36,17 +98,13 @@ const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, o
         id: Math.random().toString(36).substr(2, 9),
         name: '',
         type: PeriodType.EXERCISE,
-        duration: 40 // Por defecto 40 segundos para ejercicio
+        duration: 40
       }
     });
   };
 
   const handleOpenEditPeriod = (period: Period) => {
-    setEditingPeriod({
-      active: true,
-      isNew: false,
-      period: { ...period }
-    });
+    setEditingPeriod({ active: true, isNew: false, period: { ...period } });
   };
 
   const handleSavePeriod = () => {
@@ -80,55 +138,6 @@ const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, o
     }
     setEdited(prev => ({ ...prev, periods: newPeriods }));
     setShowRepeatTool(false);
-  };
-
-  const handleDrop = (dropIndex: number) => {
-    if (draggedIndex === null || draggedIndex === dropIndex) return;
-    setEdited(prev => {
-      const newPeriods = [...prev.periods];
-      const [draggedItem] = newPeriods.splice(draggedIndex, 1);
-      newPeriods.splice(dropIndex, 0, draggedItem);
-      return { ...prev, periods: newPeriods };
-    });
-    setDraggedIndex(null);
-    setHoverIndex(null);
-  };
-
-  const handleTouchStart = (e: React.TouchEvent, index: number) => {
-    touchStartY.current = e.touches[0].clientY;
-    setDraggedIndex(index);
-    setHoverIndex(index);
-    setDragOffset(0);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (draggedIndex === null) return;
-    const currentY = e.touches[0].clientY;
-    const diff = currentY - touchStartY.current;
-    
-    setDragOffset(diff);
-
-    const CARD_HEIGHT = 124; // Altura aproximada de la tarjeta + margen
-    const itemsShifted = Math.round(diff / CARD_HEIGHT);
-    const newHoverIndex = Math.max(0, Math.min(draggedIndex + itemsShifted, edited.periods.length - 1));
-    
-    if (newHoverIndex !== hoverIndex) {
-      setHoverIndex(newHoverIndex);
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (draggedIndex !== null && hoverIndex !== null && draggedIndex !== hoverIndex) {
-      setEdited(prev => {
-        const newPeriods = [...prev.periods];
-        const [item] = newPeriods.splice(draggedIndex, 1);
-        newPeriods.splice(hoverIndex, 0, item);
-        return { ...prev, periods: newPeriods };
-      });
-    }
-    setDraggedIndex(null);
-    setHoverIndex(null);
-    setDragOffset(0);
   };
 
   const handleTypeChangeInForm = (type: PeriodType) => {
@@ -198,73 +207,21 @@ const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, o
             </div>
           </div>
 
-          <div className={`space-y-4 ${draggedIndex !== null ? 'select-none' : ''}`}>
-            {edited.periods.map((period, index) => {
-              let translateY = 0;
-              if (isTouchDevice && draggedIndex !== null && hoverIndex !== null) {
-                if (index === draggedIndex) {
-                  translateY = dragOffset;
-                } else if (draggedIndex < hoverIndex && index > draggedIndex && index <= hoverIndex) {
-                  translateY = -124; // Mover hacia arriba para hacer espacio
-                } else if (draggedIndex > hoverIndex && index < draggedIndex && index >= hoverIndex) {
-                  translateY = 124; // Mover hacia abajo para hacer espacio
-                }
-              }
-
-              return (
-                <div 
-                  key={period.id} 
-                  draggable={!isTouchDevice}
-                  onDragStart={() => setDraggedIndex(index)}
-                  onDragOver={(e) => { e.preventDefault(); setHoverIndex(index); }}
-                  onDrop={() => handleDrop(index)}
-                  onDragEnd={() => { setDraggedIndex(null); setHoverIndex(null); }}
-                  className={`bg-blue-900/30 border p-4 rounded-xl space-y-3 shadow-inner ${!isTouchDevice ? 'cursor-grab active:cursor-grabbing' : ''} ${draggedIndex === index ? 'opacity-95 scale-[1.02] border-[#FFC107] shadow-2xl ring-2 ring-[#FFC107]/50' : 'border-[#FFC107]/10 transition-transform duration-300'}`}
-                  style={{
-                    transform: `translateY(${translateY}px)`,
-                    zIndex: draggedIndex === index ? 50 : 1,
-                    position: 'relative'
-                  }}
-                >
-                  <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <span 
-                    className="text-white/50 text-xl cursor-grab active:cursor-grabbing px-4 py-2 -ml-2 select-none" 
-                    style={{ touchAction: 'none', WebkitTouchCallout: 'none' }}
-                      title="Arrastrar para reordenar"
-                      onTouchStart={(e) => handleTouchStart(e, index)}
-                      onTouchMove={handleTouchMove}
-                      onTouchEnd={handleTouchEnd}
-                      onTouchCancel={handleTouchEnd}
-                    >
-                      ☰
-                    </span>
-                    <span className="text-[10px] font-black text-white/30 tracking-widest">ROUND #{index + 1}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <button onClick={() => handleOpenEditPeriod(period)} className="text-blue-400 p-2 active:scale-75">
-                      <EditIcon className="w-5 h-5" />
-                    </button>
-                    <button onClick={() => removePeriod(period.id)} className="text-red-400 p-2 active:scale-75">
-                      <TrashIcon className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="flex justify-between items-center bg-black/20 p-3 rounded-xl border border-white/5">
-                  <div>
-                    <span className="text-[10px] font-bold text-white/50 uppercase block mb-0.5">{period.type}</span>
-                    <span className="text-sm font-black text-white">{period.name || 'Sin nombre'}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 bg-[#002244] px-3 py-1.5 rounded-lg border border-[#FFC107]/20">
-                    <ClockIcon className="w-4 h-4 text-[#FFC107]" />
-                    <span className="text-[#FFC107] font-mono font-bold text-sm">{period.duration}s</span>
-                  </div>
-                </div>
-                </div>
-              );
-            })}
-          </div>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={edited.periods.map(p => p.id)} strategy={verticalListSortingStrategy}>
+              <div className="space-y-4">
+                {edited.periods.map((period, index) => (
+                  <SortablePeriod 
+                    key={period.id} 
+                    period={period} 
+                    index={index} 
+                    handleOpenEditPeriod={handleOpenEditPeriod} 
+                    removePeriod={removePeriod} 
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         </div>
       </div>
 

@@ -20,6 +20,7 @@ const TimerView: React.FC<Props> = ({ workout, onBack }) => {
   const currentPeriod = workout.periods[index];
   const nextPeriod = workout.periods[index + 1];
   const timerRef = useRef<number | null>(null);
+  const endTimeRef = useRef<number | null>(null);
 
   const completeWorkout = useCallback(() => {
     setIsActive(false);
@@ -63,22 +64,28 @@ const TimerView: React.FC<Props> = ({ workout, onBack }) => {
 
   useEffect(() => {
     if (isActive && timeLeft > 0) {
+      endTimeRef.current = Date.now() + timeLeft * 1000;
+      
       timerRef.current = window.setInterval(() => {
+        const remaining = Math.ceil((endTimeRef.current! - Date.now()) / 1000);
+        
         setTimeLeft(prev => {
-          if (prev <= 1) {
+          if (remaining <= 0) {
             clearInterval(timerRef.current!);
             nextStep();
             return 0;
           }
-          if (prev <= 4) audioService.playTick();
-          return prev - 1;
+          if (remaining !== prev && remaining <= 3 && remaining > 0) {
+            audioService.playTick();
+          }
+          return remaining;
         });
-      }, 1000);
+      }, 200); // More frequent check for better accuracy
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [isActive, timeLeft, nextStep]);
+  }, [isActive, nextStep]); // Removed timeLeft from dependencies to avoid resetting the interval
 
   const toggleTimer = () => {
     if (!isActive && timeLeft === currentPeriod.duration && index === 0) {
