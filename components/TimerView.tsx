@@ -69,12 +69,13 @@ const TimerView: React.FC<Props> = ({ workout, onBack }) => {
       timerRef.current = window.setInterval(() => {
         const remaining = Math.ceil((endTimeRef.current! - Date.now()) / 1000);
         
+        if (remaining <= 0) {
+          clearInterval(timerRef.current!);
+          nextStep();
+          return;
+        }
+
         setTimeLeft(prev => {
-          if (remaining <= 0) {
-            clearInterval(timerRef.current!);
-            nextStep();
-            return 0;
-          }
           if (remaining !== prev && remaining <= 3 && remaining > 0) {
             audioService.playTick();
           }
