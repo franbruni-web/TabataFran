@@ -73,9 +73,23 @@ const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, o
   const [repeatCount, setRepeatCount] = useState(2);
   const [repeatTimes, setRepeatTimes] = useState(7);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   // Validation — save button is disabled unless name is filled and at least one period exists
   const isValid = edited.name.trim().length > 0 && edited.periods.length > 0;
+
+  const handleCancel = () => {
+    if (JSON.stringify(edited) !== JSON.stringify(workout)) {
+      setShowCancelConfirm(true);
+    } else {
+      onCancel();
+    }
+  };
+
+  const totalDuration = edited.periods.reduce((acc, p) => acc + p.duration, 0);
+  const totalMin = Math.floor(totalDuration / 60);
+  const totalSec = totalDuration % 60;
+
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -174,7 +188,7 @@ const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, o
     <div className="fixed inset-0 z-[100] flex flex-col bg-[#002244] overflow-hidden">
       <header className="p-4 border-b border-[#FFC107]/30 flex justify-between items-center bg-[#00358E]">
         <h2 className="text-xl font-bold text-[#FFC107]">Configurar Rutina</h2>
-        <button onClick={onCancel} className="p-2 text-white/70 active:scale-90">
+        <button onClick={handleCancel} className="p-2 text-white/70 active:scale-90">
           <XIcon className="w-6 h-6" />
         </button>
       </header>
@@ -243,12 +257,15 @@ const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, o
         </div>
       </div>
 
-      <footer className="p-4 bg-[#00358E] border-t border-[#FFC107]/30 flex gap-3 z-20">
+      <footer className="p-4 bg-[#00358E] border-t border-[#FFC107]/30 flex items-center gap-3 z-20">
         {edited.periods.length === 0 && (
           <p className="w-full text-center text-red-400/80 text-[10px] font-bold uppercase tracking-wider absolute -top-6 left-0 right-0">
             ⚠ Agregá al menos una etapa
           </p>
         )}
+        <div className="flex items-center justify-center px-4 py-4 bg-blue-900/50 rounded-xl border border-[#FFC107]/20 font-mono text-[#FFC107] text-xs font-black shrink-0">
+          ⏱ {totalMin}m {totalSec}s
+        </div>
         <button
           onClick={() => isValid && onSave(edited)}
           disabled={!isValid}
@@ -377,6 +394,29 @@ const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, o
                   {name}
                 </button>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCancelConfirm && (
+        <div className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-200">
+          <div className="bg-[#002244] border-2 border-[#FFC107] p-8 rounded-3xl w-full max-w-sm text-center shadow-2xl">
+            <h4 className="text-2xl font-black text-white mb-2 uppercase italic tracking-tighter">¿DESCARTAR CAMBIOS?</h4>
+            <p className="text-white/60 mb-8 font-medium">Tienes cambios sin guardar que se perderán.</p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => setShowCancelConfirm(false)}
+                className="bg-white text-[#00358E] font-black py-4 rounded-xl active:scale-95 shadow-lg"
+              >
+                CONTINUAR EDITANDO
+              </button>
+              <button
+                onClick={onCancel}
+                className="bg-red-600 text-white font-black py-4 rounded-xl active:scale-95 shadow-lg"
+              >
+                DESCARTAR
+              </button>
             </div>
           </div>
         </div>

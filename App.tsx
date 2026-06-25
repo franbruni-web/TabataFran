@@ -6,6 +6,9 @@ import WorkoutEditor from './components/WorkoutEditor';
 import TimerView from './components/TimerView';
 import WorkoutCard from './components/WorkoutCard';
 import { PlusIcon } from './components/Icons';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
+
 
 const App: React.FC = () => {
   const [workouts, setWorkouts] = useState<Workout[]>(() => {
@@ -64,6 +67,41 @@ const App: React.FC = () => {
     setWorkouts(prev => prev.filter(w => w.id !== id));
   };
 
+  const handleDuplicateWorkout = (workout: Workout) => {
+    const cloned: Workout = {
+      ...workout,
+      id: Date.now().toString(),
+      name: `Copia de ${workout.name}`,
+      periods: workout.periods.map(p => ({ ...p, id: Math.random().toString(36).substr(2, 9) }))
+    };
+    setWorkouts(prev => {
+      const idx = prev.findIndex(w => w.id === workout.id);
+      if (idx !== -1) {
+        const next = [...prev];
+        next.splice(idx + 1, 0, cloned);
+        return next;
+      }
+      return [...prev, cloned];
+    });
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setWorkouts((items) => {
+        const oldIndex = items.findIndex((w) => w.id === active.id);
+        const newIndex = items.findIndex((w) => w.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
+
+
   if (activeWorkout) {
     return <TimerView workout={activeWorkout} onBack={() => setActiveWorkout(null)} />;
   }
@@ -100,15 +138,22 @@ const App: React.FC = () => {
             </button>
           </div>
         ) : (
-          workouts.map(workout => (
-            <WorkoutCard 
-              key={workout.id} 
-              workout={workout} 
-              onStart={() => setActiveWorkout(workout)}
-              onEdit={() => setIsEditing(workout)}
-              onDelete={() => handleDeleteWorkout(workout.id)}
-            />
-          ))
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={workouts.map(w => w.id)} strategy={verticalListSortingStrategy}>
+              <div className="space-y-4">
+                {workouts.map(workout => (
+                  <WorkoutCard 
+                    key={workout.id} 
+                    workout={workout} 
+                    onStart={() => setActiveWorkout(workout)}
+                    onEdit={() => setIsEditing(workout)}
+                    onDelete={() => handleDeleteWorkout(workout.id)}
+                    onDuplicate={() => handleDuplicateWorkout(workout)}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         )}
       </main>
 

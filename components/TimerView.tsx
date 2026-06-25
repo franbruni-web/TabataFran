@@ -16,7 +16,11 @@ const TimerView: React.FC<Props> = ({ workout, onBack }) => {
   const [isActive, setIsActive] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
-  
+  // countdown: null = not counting, 3/2/1 = counting, 0 = "¡YA!"
+  const [countdown, setCountdown] = useState<number | null>(null);
+  // hasStarted: prevents showing countdown again after pause/resume
+  const [hasStarted, setHasStarted] = useState(false);
+
   const currentPeriod = workout.periods[index];
   const nextPeriod = workout.periods[index + 1];
   const timerRef = useRef<number | null>(null);
@@ -80,6 +84,7 @@ const TimerView: React.FC<Props> = ({ workout, onBack }) => {
     setIsActive(false);
     setIsFinished(true);
     audioService.playComplete();
+    setTimeout(() => audioService.speak('¡Rutina completada! ¡Excelente trabajo!'), 1800);
   }, []);
 
   const nextStep = useCallback(() => {
@@ -99,6 +104,15 @@ const TimerView: React.FC<Props> = ({ workout, onBack }) => {
 
       if (nextP.type === PeriodType.REST || nextP.type === PeriodType.COOLDOWN) {
         audioService.playRest();
+        // Announce the exercise that comes AFTER this rest
+        const upcoming = workout.periods[nextIdx + 1];
+        if (upcoming) {
+          const label = upcoming.name || upcoming.type;
+          const isLast = nextIdx + 1 === workout.periods.length - 1;
+          setTimeout(() => audioService.speak(
+            isLast ? `Último ejercicio: ${label}` : `Próximo: ${label}`
+          ), 900);
+        }
       } else {
         audioService.playStart();
       }
@@ -167,15 +181,40 @@ const TimerView: React.FC<Props> = ({ workout, onBack }) => {
   }, [isActive]); // Only depends on isActive — never restarts mid-workout ✓
 
 
-  const toggleTimer = () => {
-    if (!isActive && timeLeft === currentPeriod.duration && index === 0) {
-      audioService.playStart();
+  // Countdown 3-2-1 effect
+  useEffect(() => {
+    if (countdown === null) return;
+    if (countdown === 0) {
+      const t = setTimeout(() => {
+        setCountdown(null);
+        setHasStarted(true);
+        setIsActive(true);
+      }, 600); // brief pause on "¡YA!"
+      return () => clearTimeout(t);
     }
-    setIsActive(!isActive);
+    audioService.playTick();
+    const t = setTimeout(() => setCountdown(prev => (prev ?? 1) - 1), 1000);
+    return () => clearTimeout(t);
+  }, [countdown]);
+
+  const toggleTimer = () => {
+    if (!isActive) {
+      if (!hasStarted) {
+        // First press → show 3-2-1 countdown
+        setCountdown(3);
+      } else {
+        // Resuming from pause → no countdown
+        setIsActive(true);
+      }
+    } else {
+      setIsActive(false);
+    }
   };
 
   const resetTimer = () => {
     indexRef.current = 0;
+    setHasStarted(false);
+    setCountdown(null);
     setIsActive(false);
     setIsFinished(false);
     setIndex(0);
@@ -191,15 +230,46 @@ const TimerView: React.FC<Props> = ({ workout, onBack }) => {
     }
   };
 
+  const totalSeconds = workout.periods.reduce((acc, p) => acc + p.duration, 0);
+
   if (isFinished) {
+    const totalMin = Math.floor(totalSeconds / 60);
+    const totalSec = totalSeconds % 60;
+    const exercisesDone = workout.periods.filter(p => p.type === PeriodType.EXERCISE).length;
+    const MOTIVATIONAL = [
+      '¡Tu cuerpo te lo va a agradecer!',
+      '¡Cada repetición cuenta!',
+      '¡Sos más fuerte de lo que creés!',
+      '¡La constancia es la clave!',
+      '¡Un día más, un día mejor!',
+      '¡El dolor de hoy es el poder de mañana!',
+      '¡Orgullo puro!',
+      '¡Sin excusas, solo resultados!',
+    ];
+    const phrase = MOTIVATIONAL[Math.floor(Math.random() * MOTIVATIONAL.length)];
     return (
       <div className="h-[100dvh] bg-[#002244] flex flex-col items-center justify-center p-8 text-center animate-in zoom-in duration-300 safe-pt safe-pb overflow-hidden">
-        <div className="w-32 h-32 bg-[#FFC107] rounded-full flex items-center justify-center mb-8 text-6xl shadow-2xl ring-4 ring-[#FFC107]/20">
+        <div className="w-28 h-28 bg-[#FFC107] rounded-full flex items-center justify-center mb-6 text-5xl shadow-2xl ring-4 ring-[#FFC107]/20 animate-bounce">
           🏆
         </div>
-        <h2 className="text-4xl font-black text-[#FFC107] mb-4 tracking-tighter uppercase italic">¡CAMPEÓN!</h2>
-        <p className="text-white/80 text-lg mb-10">Rutina <span className="text-[#FFC107] font-bold">{workout.name}</span> completada.</p>
-        <div className="flex flex-col w-full gap-4 max-w-xs">
+        <h2 className="text-4xl font-black text-[#FFC107] mb-1 tracking-tighter uppercase italic">¡CAMPEÓN!</h2>
+        <p className="text-white/60 text-sm mb-6 italic">{phrase}</p>
+
+        <div className="flex gap-4 mb-8">
+          <div className="bg-white/5 border border-white/10 rounded-2xl px-5 py-3 text-center">
+            <div className="text-[#FFC107] text-2xl font-black font-mono">{String(totalMin).padStart(2,'0')}:{String(totalSec).padStart(2,'0')}</div>
+            <div className="text-white/40 text-[9px] font-bold uppercase tracking-wider mt-0.5">Tiempo total</div>
+          </div>
+          {exercisesDone > 0 && (
+            <div className="bg-white/5 border border-white/10 rounded-2xl px-5 py-3 text-center">
+              <div className="text-emerald-400 text-2xl font-black">{exercisesDone}</div>
+              <div className="text-white/40 text-[9px] font-bold uppercase tracking-wider mt-0.5">Ejercicios</div>
+            </div>
+          )}
+        </div>
+
+        <p className="text-white/70 text-sm mb-8">Rutina <span className="text-[#FFC107] font-bold">{workout.name}</span> completada.</p>
+        <div className="flex flex-col w-full gap-3 max-w-xs">
           <button onClick={resetTimer} className="bg-blue-900 text-white font-black py-4 rounded-2xl border border-[#FFC107]/20 active:scale-95 shadow-lg">REPETIR</button>
           <button onClick={onBack} className="bg-[#FFC107] text-[#00358E] font-black py-4 rounded-2xl active:scale-95 shadow-xl">VOLVER</button>
         </div>
@@ -211,8 +281,7 @@ const TimerView: React.FC<Props> = ({ workout, onBack }) => {
   const exerciseEmoji = getEmojiForExercise(currentPeriod.name, currentPeriod.type);
   const progress = (timeLeft / currentPeriod.duration) * 100;
 
-  // --- Global progress bar: how much of the total workout has been completed
-  const totalSeconds = workout.periods.reduce((acc, p) => acc + p.duration, 0);
+  // Global progress + time remaining
   const completedSeconds = workout.periods
     .slice(0, index)
     .reduce((acc, p) => acc + p.duration, 0)
@@ -220,6 +289,9 @@ const TimerView: React.FC<Props> = ({ workout, onBack }) => {
   const globalProgress = totalSeconds > 0
     ? Math.min((completedSeconds / totalSeconds) * 100, 100)
     : 0;
+  const remainingTotal = Math.max(0, totalSeconds - Math.floor(completedSeconds));
+  const remMin = Math.floor(remainingTotal / 60);
+  const remSec = remainingTotal % 60;
 
   return (
     <div className={`h-[100dvh] flex flex-col transition-colors duration-500 bg-[#002244] safe-pt overflow-hidden`}>
@@ -243,7 +315,8 @@ const TimerView: React.FC<Props> = ({ workout, onBack }) => {
       </div>
 
       <main className={`flex-1 flex flex-col items-center justify-center relative transition-all duration-700 ${config.bg}`}>
-        <div className="text-center z-10 p-6 w-full">
+        {/* key={index} forces remount on step change → slide-in animation (#12) */}
+        <div key={index} className="text-center z-10 p-6 w-full animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="text-9xl mb-6 drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)] animate-bounce">{exerciseEmoji}</div>
           <h3 className="text-3xl font-black text-white mb-2 uppercase tracking-wide px-4 break-words drop-shadow-md">
             {currentPeriod.name || currentPeriod.type}
@@ -253,6 +326,10 @@ const TimerView: React.FC<Props> = ({ workout, onBack }) => {
                {timeLeft}
              </div>
              <div className="absolute -bottom-2 right-0 text-white/30 font-bold text-sm tracking-widest">SEG</div>
+          </div>
+          {/* Time remaining in full workout (#7) */}
+          <div className="mt-4 text-white/30 text-xs font-mono font-bold tracking-wider">
+            ⏱ {remMin}:{String(remSec).padStart(2, '0')} restantes
           </div>
         </div>
 
@@ -313,6 +390,18 @@ const TimerView: React.FC<Props> = ({ workout, onBack }) => {
                 SALIR
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* 3-2-1 Countdown overlay (#1) */}
+      {countdown !== null && (
+        <div className="absolute inset-0 z-[80] bg-[#001529]/95 backdrop-blur-sm flex flex-col items-center justify-center safe-pt">
+          <p className="text-[#FFC107] text-[10px] font-black uppercase tracking-[0.4em] mb-6">PREPÁRATE</p>
+          <div
+            key={countdown}
+            className="text-[16rem] leading-none font-black tabular-nums text-white animate-in zoom-in-50 duration-200 drop-shadow-[0_10px_40px_rgba(255,193,7,0.4)]"
+          >
+            {countdown === 0 ? '¡YA!' : countdown}
           </div>
         </div>
       )}

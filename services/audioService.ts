@@ -68,6 +68,24 @@ class AudioService {
     // Tic tac sutil
     this.playBell(1500, 0.05, 0.2);
   }
+
+  speak(text: string) {
+    if (!('speechSynthesis' in window)) return;
+    // Cancel any ongoing speech so voices don't pile up between short periods
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    // Prefer Argentine Spanish, fall back to any Spanish, then browser default
+    const voices = window.speechSynthesis.getVoices();
+    const preferred = voices.find(v => v.lang === 'es-AR')
+      || voices.find(v => v.lang.startsWith('es'))
+      || null;
+    if (preferred) utterance.voice = preferred;
+    utterance.lang = 'es-AR';
+    utterance.rate = 0.92;
+    utterance.pitch = 1.05;
+    utterance.volume = 1;
+    window.speechSynthesis.speak(utterance);
+  }
 }
 
 export const audioService = new AudioService();

@@ -3,16 +3,28 @@ import React, { useState, useEffect, useRef } from 'react';
 import html2pdf from 'html2pdf.js';
 import { Workout, PeriodType } from '../types';
 import { audioService } from '../services/audioService';
-import { PlayIcon, EditIcon, TrashIcon, ClockIcon, XIcon, DownloadIcon } from './Icons';
+import { PlayIcon, EditIcon, TrashIcon, ClockIcon, XIcon, DownloadIcon, CopyIcon, GripIcon } from './Icons';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface Props {
   workout: Workout;
   onStart: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onDuplicate: () => void;
 }
 
-const WorkoutCard: React.FC<Props> = ({ workout, onStart, onEdit, onDelete }) => {
+const WorkoutCard: React.FC<Props> = ({ workout, onStart, onEdit, onDelete, onDuplicate }) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: workout.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : 1,
+    position: 'relative' as any,
+  };
+
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const confirmTimeoutRef = useRef<number | null>(null);
 
@@ -133,12 +145,25 @@ const WorkoutCard: React.FC<Props> = ({ workout, onStart, onEdit, onDelete }) =>
 
   return (
     <div 
-      className={`bg-[#002244] border ${isConfirmingDelete ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]' : 'border-[#FFC107]/30'} p-5 rounded-2xl shadow-lg transition-all relative overflow-hidden flex flex-col`}
+      ref={setNodeRef}
+      style={style}
+      className={`bg-[#002244] border ${isConfirmingDelete ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]' : 'border-[#FFC107]/30'} p-5 rounded-2xl shadow-lg transition-all relative overflow-hidden flex flex-col ${isDragging ? 'opacity-80 ring-2 ring-[#FFC107]' : ''}`}
     >
       <div className="flex justify-between items-start mb-3">
-        <h3 className="text-xl font-black text-[#FFC107] uppercase italic tracking-tight">
-          {workout.name || 'Nueva Rutina'}
-        </h3>
+        <div className="flex items-center gap-2">
+          <span
+            {...attributes}
+            {...listeners}
+            className="text-white/40 hover:text-white/80 cursor-grab active:cursor-grabbing p-1 -ml-2 select-none outline-none"
+            style={{ touchAction: 'none' }}
+            title="Arrastrar para reordenar"
+          >
+            <GripIcon className="w-5 h-5" />
+          </span>
+          <h3 className="text-xl font-black text-[#FFC107] uppercase italic tracking-tight">
+            {workout.name || 'Nueva Rutina'}
+          </h3>
+        </div>
         <div className="flex items-center gap-1 text-white/60 text-[10px] bg-black/40 px-2 py-1 rounded-md font-mono font-bold">
           <ClockIcon className="w-3 h-3" />
           <span>{minutes}M {seconds}S</span>
@@ -184,6 +209,14 @@ const WorkoutCard: React.FC<Props> = ({ workout, onStart, onEdit, onDelete }) =>
               title="Exportar a PDF"
             >
               <DownloadIcon className="w-5 h-5" />
+            </button>
+            <button 
+              onClick={onDuplicate}
+              className="p-4 rounded-xl bg-blue-800/80 text-white border border-blue-500/40 active:scale-90 transition-transform shadow-md"
+              aria-label="Duplicar"
+              title="Duplicar rutina"
+            >
+              <CopyIcon className="w-5 h-5" />
             </button>
             <button 
               onClick={handleEdit}
