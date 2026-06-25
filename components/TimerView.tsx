@@ -29,6 +29,47 @@ const TimerView: React.FC<Props> = ({ workout, onBack }) => {
   const indexRef = useRef(0);
   useEffect(() => { indexRef.current = index; }, [index]);
 
+  // --- Wake Lock: keeps the screen on while the workout is active
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+
+  const requestWakeLock = async () => {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLockRef.current = await navigator.wakeLock.request('screen');
+      }
+    } catch (err) {
+      // Wake Lock not supported or permission denied — silently ignore
+    }
+  };
+
+  const releaseWakeLock = () => {
+    if (wakeLockRef.current) {
+      wakeLockRef.current.release();
+      wakeLockRef.current = null;
+    }
+  };
+
+  // Acquire / release wake lock based on isActive
+  useEffect(() => {
+    if (isActive) {
+      requestWakeLock();
+    } else {
+      releaseWakeLock();
+    }
+    return () => releaseWakeLock();
+  }, [isActive]);
+
+  // Re-acquire the lock if the user comes back to the tab (browser releases it on hide)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && isActive) {
+        requestWakeLock();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [isActive]);
+
   // completeWorkout clears the interval synchronously so it can safely
   // be called from inside the interval callback.
   const completeWorkout = useCallback(() => {
@@ -170,6 +211,16 @@ const TimerView: React.FC<Props> = ({ workout, onBack }) => {
   const exerciseEmoji = getEmojiForExercise(currentPeriod.name, currentPeriod.type);
   const progress = (timeLeft / currentPeriod.duration) * 100;
 
+  // --- Global progress bar: how much of the total workout has been completed
+  const totalSeconds = workout.periods.reduce((acc, p) => acc + p.duration, 0);
+  const completedSeconds = workout.periods
+    .slice(0, index)
+    .reduce((acc, p) => acc + p.duration, 0)
+    + (currentPeriod.duration - timeLeft);
+  const globalProgress = totalSeconds > 0
+    ? Math.min((completedSeconds / totalSeconds) * 100, 100)
+    : 0;
+
   return (
     <div className={`h-[100dvh] flex flex-col transition-colors duration-500 bg-[#002244] safe-pt overflow-hidden`}>
       <header className="p-5 flex items-center justify-between z-10">
@@ -182,6 +233,14 @@ const TimerView: React.FC<Props> = ({ workout, onBack }) => {
         </div>
         <div className="w-12"></div>
       </header>
+
+      {/* Global progress bar — total workout completion */}
+      <div className="w-full h-1.5 bg-black/40">
+        <div
+          className="h-full bg-[#FFC107] transition-all duration-200 ease-linear"
+          style={{ width: `${globalProgress}%` }}
+        />
+      </div>
 
       <main className={`flex-1 flex flex-col items-center justify-center relative transition-all duration-700 ${config.bg}`}>
         <div className="text-center z-10 p-6 w-full">

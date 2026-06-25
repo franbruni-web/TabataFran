@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import html2pdf from 'html2pdf.js';
-import { Workout } from '../types';
+import { Workout, PeriodType } from '../types';
 import { audioService } from '../services/audioService';
 import { PlayIcon, EditIcon, TrashIcon, ClockIcon, XIcon, DownloadIcon } from './Icons';
 
@@ -19,6 +19,10 @@ const WorkoutCard: React.FC<Props> = ({ workout, onStart, onEdit, onDelete }) =>
   const totalDuration = workout.periods.reduce((acc, p) => acc + p.duration, 0);
   const minutes = Math.floor(totalDuration / 60);
   const seconds = totalDuration % 60;
+
+  const exerciseCount = workout.periods.filter(p => p.type === PeriodType.EXERCISE).length;
+  const restCount = workout.periods.filter(p => p.type === PeriodType.REST).length;
+  const totalSteps = workout.periods.length;
 
   // Limpiar el timeout si el componente se desmonta
   useEffect(() => {
@@ -140,6 +144,24 @@ const WorkoutCard: React.FC<Props> = ({ workout, onStart, onEdit, onDelete }) =>
           <span>{minutes}M {seconds}S</span>
         </div>
       </div>
+
+      {totalSteps > 0 && (
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          <span className="text-[10px] font-black text-white/40 bg-white/5 px-2 py-0.5 rounded-full uppercase tracking-wider">
+            {totalSteps} etapas
+          </span>
+          {exerciseCount > 0 && (
+            <span className="text-[10px] font-black text-emerald-400/80 bg-emerald-400/10 px-2 py-0.5 rounded-full uppercase tracking-wider">
+              💪 {exerciseCount} ejerc.
+            </span>
+          )}
+          {restCount > 0 && (
+            <span className="text-[10px] font-black text-blue-300/80 bg-blue-400/10 px-2 py-0.5 rounded-full uppercase tracking-wider">
+              🧘 {restCount} desc.
+            </span>
+          )}
+        </div>
+      )}
 
       <p className="text-white/70 text-sm mb-6 line-clamp-1 font-medium">
         {workout.description || 'Toca para empezar el entrenamiento.'}

@@ -74,6 +74,9 @@ const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, o
   const [repeatTimes, setRepeatTimes] = useState(7);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Validation — save button is disabled unless name is filled and at least one period exists
+  const isValid = edited.name.trim().length > 0 && edited.periods.length > 0;
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -183,8 +186,23 @@ const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, o
             <input 
               value={edited.name}
               onChange={e => setEdited({ ...edited, name: e.target.value })}
-              className="w-full bg-blue-900/50 border border-[#FFC107]/20 rounded-xl px-4 py-3 text-white placeholder-white/30 outline-none focus:border-[#FFC107]"
+              className={`w-full bg-blue-900/50 border rounded-xl px-4 py-3 text-white placeholder-white/30 outline-none transition-colors ${
+                edited.name.trim().length === 0 ? 'border-red-500/50 focus:border-red-400' : 'border-[#FFC107]/20 focus:border-[#FFC107]'
+              }`}
               placeholder="Ej. Tabata Piernas"
+            />
+            {edited.name.trim().length === 0 && (
+              <p className="text-red-400 text-[10px] font-bold ml-1 mt-1">⚠ El nombre no puede estar vacío.</p>
+            )}
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-[#FFC107]/70 uppercase ml-1">Descripción <span className="text-white/30 normal-case font-normal">(opcional)</span></label>
+            <input
+              value={edited.description || ''}
+              onChange={e => setEdited({ ...edited, description: e.target.value })}
+              className="w-full bg-blue-900/50 border border-[#FFC107]/10 rounded-xl px-4 py-3 text-white placeholder-white/30 outline-none focus:border-[#FFC107]/40"
+              placeholder="Ej. Rutina de piernas para principiantes"
             />
           </div>
         </div>
@@ -226,7 +244,20 @@ const WorkoutEditor: React.FC<Props> = ({ workout, availableExercises, onSave, o
       </div>
 
       <footer className="p-4 bg-[#00358E] border-t border-[#FFC107]/30 flex gap-3 z-20">
-        <button onClick={() => onSave(edited)} className="flex-1 bg-[#FFC107] text-[#00358E] font-black py-4 rounded-xl active:scale-95">
+        {edited.periods.length === 0 && (
+          <p className="w-full text-center text-red-400/80 text-[10px] font-bold uppercase tracking-wider absolute -top-6 left-0 right-0">
+            ⚠ Agregá al menos una etapa
+          </p>
+        )}
+        <button
+          onClick={() => isValid && onSave(edited)}
+          disabled={!isValid}
+          className={`flex-1 font-black py-4 rounded-xl transition-all ${
+            isValid
+              ? 'bg-[#FFC107] text-[#00358E] active:scale-95'
+              : 'bg-[#FFC107]/25 text-[#00358E]/40 cursor-not-allowed'
+          }`}
+        >
           GUARDAR RUTINA
         </button>
       </footer>
