@@ -129,8 +129,7 @@ const WorkoutCard: React.FC<Props> = ({ workout, onStart, onEdit, onDelete }) =>
 
   return (
     <div 
-      className={`bg-[#002244] border ${isConfirmingDelete ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]' : 'border-[#FFC107]/30'} p-5 rounded-2xl shadow-lg active:bg-[#00358E] transition-all relative overflow-hidden flex flex-col`}
-      onClick={onStart}
+      className={`bg-[#002244] border ${isConfirmingDelete ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]' : 'border-[#FFC107]/30'} p-5 rounded-2xl shadow-lg transition-all relative overflow-hidden flex flex-col`}
     >
       <div className="flex justify-between items-start mb-3">
         <h3 className="text-xl font-black text-[#FFC107] uppercase italic tracking-tight">

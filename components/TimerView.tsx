@@ -22,19 +22,40 @@ const TimerView: React.FC<Props> = ({ workout, onBack }) => {
   const timerRef = useRef<number | null>(null);
   const endTimeRef = useRef<number | null>(null);
 
+  // --- FIX Bug 1 & 2: Use a ref to always read the latest index inside the
+  // interval callback, avoiding stale closures. This also makes nextStep
+  // stable (no 'index' in deps), so the effect never restarts the interval
+  // just because the step changed.
+  const indexRef = useRef(0);
+  useEffect(() => { indexRef.current = index; }, [index]);
+
+  // completeWorkout clears the interval synchronously so it can safely
+  // be called from inside the interval callback.
   const completeWorkout = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
     setIsActive(false);
     setIsFinished(true);
     audioService.playComplete();
   }, []);
 
   const nextStep = useCallback(() => {
-    if (index < workout.periods.length - 1) {
-      const nextIdx = index + 1;
+    const currentIndex = indexRef.current;
+
+    if (currentIndex < workout.periods.length - 1) {
+      const nextIdx = currentIndex + 1;
+      // Update ref synchronously so a rapid second call (before React re-renders)
+      // won't read the same stale index and double-advance.
+      indexRef.current = nextIdx;
       const nextP = workout.periods[nextIdx];
       setIndex(nextIdx);
       setTimeLeft(nextP.duration);
-      
+      // Update endTimeRef directly → the running interval picks it up on the
+      // next tick without needing to be destroyed and recreated.
+      endTimeRef.current = Date.now() + nextP.duration * 1000;
+
       if (nextP.type === PeriodType.REST || nextP.type === PeriodType.COOLDOWN) {
         audioService.playRest();
       } else {
@@ -43,50 +64,67 @@ const TimerView: React.FC<Props> = ({ workout, onBack }) => {
     } else {
       completeWorkout();
     }
-  }, [index, workout.periods, completeWorkout]);
+  }, [workout.periods, completeWorkout]); // 'index' removed from deps ✓
+
+  // Stable ref so the interval always calls the latest nextStep without being recreated.
+  const nextStepRef = useRef(nextStep);
+  useEffect(() => { nextStepRef.current = nextStep; }, [nextStep]);
 
   const prevStep = useCallback(() => {
-    if (index > 0) {
-      const prevIdx = index - 1;
+    const currentIndex = indexRef.current;
+
+    if (currentIndex > 0) {
+      const prevIdx = currentIndex - 1;
+      indexRef.current = prevIdx;
       const prevP = workout.periods[prevIdx];
       setIndex(prevIdx);
       setTimeLeft(prevP.duration);
-      
+      endTimeRef.current = Date.now() + prevP.duration * 1000;
+
       if (prevP.type === PeriodType.REST || prevP.type === PeriodType.COOLDOWN) {
         audioService.playRest();
       } else {
         audioService.playStart();
       }
     } else {
-      setTimeLeft(workout.periods[0].duration);
+      indexRef.current = 0;
+      const firstDuration = workout.periods[0].duration;
+      setTimeLeft(firstDuration);
+      endTimeRef.current = Date.now() + firstDuration * 1000;
     }
-  }, [index, workout.periods]);
+  }, [workout.periods]); // 'index' removed from deps ✓
 
   useEffect(() => {
-    if (isActive && timeLeft > 0) {
-      endTimeRef.current = Date.now() + timeLeft * 1000;
-      
-      timerRef.current = window.setInterval(() => {
-        const remaining = Math.ceil((endTimeRef.current! - Date.now()) / 1000);
-        
-        if (remaining <= 0) {
-          clearInterval(timerRef.current!);
-          nextStep();
-          return;
-        }
-
-        setTimeLeft(prev => {
-          if (remaining !== prev && remaining <= 3 && remaining > 0) {
-            audioService.playTick();
-          }
-          return remaining;
-        });
-      }, 200); // More frequent check for better accuracy
-    } else {
+    if (!isActive) {
       if (timerRef.current) clearInterval(timerRef.current);
+      return;
     }
+
+    // Set the absolute end time when the timer starts or resumes from pause.
+    endTimeRef.current = Date.now() + timeLeft * 1000;
+
+    timerRef.current = window.setInterval(() => {
+      const remaining = Math.ceil((endTimeRef.current! - Date.now()) / 1000);
+
+      if (remaining <= 0) {
+        // Do NOT clear the interval here. nextStep() updates endTimeRef so
+        // the interval seamlessly continues into the next period.
+        // If it's the last period, completeWorkout() clears it directly.
+        nextStepRef.current();
+        return;
+      }
+
+      setTimeLeft(prev => {
+        if (remaining !== prev && remaining <= 3 && remaining > 0) {
+          audioService.playTick();
+        }
+        return remaining;
+      });
+    }, 200);
+
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [isActive, nextStep]); // Removed timeLeft from dependencies to avoid resetting the interval
+  }, [isActive]); // Only depends on isActive — never restarts mid-workout ✓
+
 
   const toggleTimer = () => {
     if (!isActive && timeLeft === currentPeriod.duration && index === 0) {
@@ -96,6 +134,7 @@ const TimerView: React.FC<Props> = ({ workout, onBack }) => {
   };
 
   const resetTimer = () => {
+    indexRef.current = 0;
     setIsActive(false);
     setIsFinished(false);
     setIndex(0);
