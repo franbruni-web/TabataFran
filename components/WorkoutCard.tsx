@@ -191,62 +191,65 @@ const WorkoutCard: React.FC<Props> = ({ workout, onStart, onEdit, onDelete, onDu
       <p className="text-white/70 text-sm mb-6 line-clamp-1 font-medium">
         {workout.description || 'Toca para empezar el entrenamiento.'}
       </p>
-
-      <div className="flex gap-2">
+      <div className="flex flex-col gap-2.5 mt-auto">
         {!isConfirmingDelete ? (
           <>
             <button 
               onClick={handleStart}
-              className="flex-1 bg-[#FFC107] text-[#00358E] font-black py-4 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-md tracking-tighter"
+              className="w-full bg-[#FFC107] text-[#00358E] font-black py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-md tracking-tight text-sm uppercase"
             >
-              <PlayIcon className="w-5 h-5" />
-              ENTRENAR
+              <PlayIcon className="w-5 h-5 fill-current" />
+              INICIAR ENTRENAMIENTO
             </button>
-            <button 
-              onClick={handleExportPDF}
-              className="p-4 rounded-xl bg-blue-800 text-white border border-blue-600 active:scale-90 transition-transform shadow-md"
-              aria-label="Exportar PDF"
-              title="Exportar a PDF"
-            >
-              <DownloadIcon className="w-5 h-5" />
-            </button>
-            <button 
-              onClick={onDuplicate}
-              className="p-4 rounded-xl bg-blue-800/80 text-white border border-blue-500/40 active:scale-90 transition-transform shadow-md"
-              aria-label="Duplicar"
-              title="Duplicar rutina"
-            >
-              <CopyIcon className="w-5 h-5" />
-            </button>
-            <button 
-              onClick={handleEdit}
-              className="p-4 rounded-xl bg-blue-900 text-[#FFC107] border border-[#FFC107]/20 active:scale-90 transition-transform shadow-md"
-              aria-label="Editar"
-            >
-              <EditIcon className="w-5 h-5" />
-            </button>
-            <button 
-              onClick={handleDeleteClick}
-              className="p-4 rounded-xl bg-red-900/40 text-red-400 border border-red-500/30 active:scale-90 transition-transform shadow-md"
-              aria-label="Eliminar"
-            >
-              <TrashIcon className="w-5 h-5" />
-            </button>
+            <div className="grid grid-cols-4 gap-2">
+              <button 
+                onClick={handleExportPDF}
+                className="py-3 px-2 rounded-xl bg-blue-800/80 text-white border border-blue-600/60 active:scale-95 transition-all shadow-md flex items-center justify-center hover:bg-blue-800"
+                aria-label="Exportar PDF"
+                title="Exportar a PDF"
+              >
+                <DownloadIcon className="w-4 h-4" />
+              </button>
+              <button 
+                onClick={onDuplicate}
+                className="py-3 px-2 rounded-xl bg-blue-800/80 text-white border border-blue-500/40 active:scale-95 transition-all shadow-md flex items-center justify-center hover:bg-blue-800"
+                aria-label="Duplicar"
+                title="Duplicar rutina"
+              >
+                <CopyIcon className="w-4 h-4" />
+              </button>
+              <button 
+                onClick={handleEdit}
+                className="py-3 px-2 rounded-xl bg-blue-900/80 text-[#FFC107] border border-[#FFC107]/20 active:scale-95 transition-all shadow-md flex items-center justify-center hover:bg-blue-900"
+                aria-label="Editar"
+                title="Editar rutina"
+              >
+                <EditIcon className="w-4 h-4" />
+              </button>
+              <button 
+                onClick={handleDeleteClick}
+                className="py-3 px-2 rounded-xl bg-red-900/30 text-red-400 border border-red-500/30 active:scale-95 transition-all shadow-md flex items-center justify-center hover:bg-red-900/50"
+                aria-label="Eliminar"
+                title="Eliminar rutina"
+              >
+                <TrashIcon className="w-4 h-4" />
+              </button>
+            </div>
           </>
         ) : (
           <div className="flex w-full gap-2 animate-in fade-in zoom-in duration-200">
             <button 
               onClick={handleDeleteClick}
-              className="flex-[2] bg-red-600 text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-lg tracking-tighter uppercase italic"
+              className="flex-[2] bg-red-600 text-white font-black py-3.5 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-lg tracking-tight uppercase italic text-sm"
             >
               <TrashIcon className="w-5 h-5" />
-              ¿ELIMINAR?
+              ¿SÍ, ELIMINAR?
             </button>
             <button 
               onClick={handleCancelDelete}
-              className="flex-1 bg-white/10 text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform border border-white/20"
+              className="flex-1 bg-white/10 text-white font-black py-3.5 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform border border-white/20 text-sm"
             >
-              NO
+              CANCELAR
             </button>
           </div>
         )}
